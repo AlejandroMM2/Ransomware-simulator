@@ -265,14 +265,27 @@ víctima y el atacante.
 Las comprobaciones de estado (\texttt{healthcheck}) determinan tanto el orden de
 arranque descrito en la sección~\ref{sec:orden-arranque} como la capacidad del
 \emph{script} \texttt{verify\_lab.sh} de confirmar automáticamente, antes de
-lanzar el experimento, que los nueve contenedores están operativos. Para
-\texttt{wazuh-indexer} la comprobación consulta el \emph{endpoint}
-\texttt{/\_cluster/health} de OpenSearch; para \texttt{wazuh-manager}, el
-\emph{script} de comprobación interno de Wazuh (\texttt{/var/ossec/bin/wazuh-control status});
-y para \texttt{minio}, el \emph{endpoint} \texttt{/minio/health/live}. Ningún
-contenedor víctima ni el atacante define \texttt{healthcheck} propio, ya que su
-disponibilidad se verifica indirectamente a través del estado \emph{Active} del
-agente Wazuh correspondiente, reportado por la \gls{api} REST del \emph{manager}.
+lanzar el experimento, que los nueve contenedores están operativos. Por
+simplicidad y para no depender de herramientas adicionales dentro de cada
+imagen, las comprobaciones activas se basan en la apertura del puerto de
+servicio mediante el \emph{builtin} \texttt{/dev/tcp} de \emph{bash}: para
+\texttt{wazuh-indexer} se comprueba el puerto~9200, y para
+\texttt{wazuh-manager}, los puertos~1514 y~55000 simultáneamente. Para
+\texttt{minio} se emplea el comando \texttt{mc ready local}, propio del
+cliente oficial de MinIO incluido en su imagen. Estas comprobaciones verifican
+que el servicio \emph{escucha}, pero no garantizan por sí solas un estado
+interno completamente sano (por ejemplo, un clúster OpenSearch en estado
+\texttt{yellow} respondería igual que uno en estado \texttt{green}); como
+posible refinamiento, el propio \texttt{docker-compose.yml} documenta --- a
+modo de alternativa comentada junto a cada \texttt{healthcheck} --- una
+versión más estricta basada en el \emph{endpoint}
+\texttt{/\_cluster/health} de OpenSearch, en el estado reportado por
+\texttt{/var/ossec/bin/wazuh-control status} y en el \emph{endpoint}
+\texttt{/minio/health/live}, no activada por defecto para mantener el arranque
+libre de dependencias adicionales. Ningún contenedor víctima ni el atacante
+define \texttt{healthcheck} propio, ya que su disponibilidad se verifica
+indirectamente a través del estado \emph{Active} del agente Wazuh
+correspondiente, reportado por la \gls{api} REST del \emph{manager}.
 
 \section{Mecanismo de comunicación runner.jsonl}
 \label{sec:runner}
@@ -297,8 +310,14 @@ Este mecanismo permite la detección de eventos de alto nivel con independencia 
 \section{Configuración de red y seguridad}
 
 Todos los puertos del laboratorio se exponen al \emph{host} únicamente en la
-interfaz de \emph{loopback} (\texttt{127.0.0.1}), evitando exposiciones en la red
-local.
+interfaz de \emph{loopback} (\texttt{127.0.0.1}), evitando exposiciones en la
+red local, \textbf{con una única excepción deliberada}: el puerto~443 de
+\texttt{wazuh-dashboard} se publica sobre todas las interfaces
+(\texttt{"443:5601"} sin restricción de IP en \texttt{docker-compose.yml}),
+para permitir el acceso a la interfaz web del \gls{siem} desde otras máquinas
+de la red local durante la experimentación, sin necesidad de un túnel SSH
+adicional. Esta excepción está documentada mediante un comentario en el propio
+\texttt{docker-compose.yml} junto a la definición de puertos del servicio.
 
 \begin{table}[ht]
   \centering
@@ -402,29 +421,37 @@ incluyéndolo en los Dockerfiles.
 \section{Gestión de certificados TLS y PKI interna}
 \label{sec:pki}
 
-La comunicación entre los agentes Wazuh desplegados en los contenedores víctima
-y de ataque, y el \emph{manager} central, se protege mediante \gls{tls} mutuo:
-tanto el \emph{manager} como cada agente presentan un certificado firmado por
-una autoridad de certificación (\gls{ca}) propia del laboratorio, y ambos
-extremos verifican el certificado de la contraparte antes de establecer la
-conexión sobre el puerto~1514 descrito en la
-tabla~\ref{tab:contenedores}. Esta \gls{ca} se genera íntegramente dentro del
-propio laboratorio mediante el \emph{script} \texttt{generate\_certs.sh}
-(listado~\ref{lst:reproduccion} del anexo~C), sin depender de ninguna entidad
-certificadora externa, lo que es coherente con el requisito de reproducibilidad
-completa sin credenciales de terceros ya justificado en la
-sección~\ref{sec:destruccion-backups} del capítulo~\ref{C:estado_arte} para la
-elección de MinIO.
+La protección mediante \gls{tls} en el laboratorio se limita, de forma
+deliberada, al propio \emph{stack} \gls{siem}: las conexiones entre
+\texttt{wazuh-manager}, \texttt{wazuh-indexer} y \texttt{wazuh-dashboard} usan
+certificados emitidos por una autoridad de certificación (\gls{ca}) propia del
+laboratorio, generada íntegramente mediante el \emph{script}
+\texttt{generate\_certs.sh} (listado~\ref{lst:reproduccion} del anexo~C), sin
+depender de ninguna entidad certificadora externa, lo que es coherente con el
+requisito de reproducibilidad completa sin credenciales de terceros ya
+justificado en la sección~\ref{sec:destruccion-backups} del
+capítulo~\ref{C:estado_arte} para la elección de MinIO. Los agentes Wazuh
+desplegados en los contenedores víctima, de ataque y de \emph{backup}
+(\emph{fileserver}, \emph{workstation}, \emph{attacker} y
+\texttt{restic-sftp}) \textbf{no} presentan un certificado \gls{tls}
+individual: se autentican frente al \emph{manager} mediante el mecanismo de
+\emph{enrollment} propio de Wazuh sobre el puerto~1515 descrito en la
+tabla~\ref{tab:contenedores}, que registra cada agente bajo un nombre y grupo
+(\texttt{WAZUH\_AGENT\_NAME}, \texttt{WAZUH\_AGENT\_GROUP}) y a partir de ahí
+cifra el canal de eventos hacia el puerto~1514 con una clave compartida
+derivada del registro, no con un par de claves \gls{tls} por agente.
 
-La jerarquía de certificados generada consta de tres niveles: una \gls{ca} raíz
-autofirmada, un certificado de servidor para \texttt{wazuh-indexer} y
-\texttt{wazuh-manager} firmado por esa \gls{ca}, y certificados de cliente
-individuales para cada agente (\emph{fileserver}, \emph{workstation},
-\emph{attacker}), también firmados por la misma \gls{ca}. Todos los
-certificados se generan con una validez de un año, adecuada para un entorno de
-laboratorio de vida corta pero indicativa de que un despliegue en producción de
-esta misma arquitectura requeriría un proceso de rotación periódica de
-certificados no implementado en el laboratorio actual.
+La jerarquía de certificados generada por \texttt{generate\_certs.sh} consta,
+por tanto, de una \gls{ca} raíz autofirmada y cuatro certificados de servidor
+emitidos por ella: uno para \texttt{wazuh-indexer}, uno para el usuario
+administrador del propio \emph{indexer} (necesario para inicializar el
+\emph{plugin} de seguridad de OpenSearch), uno para \texttt{wazuh-manager}
+--- usado por Filebeat para el envío de eventos al \emph{indexer} --- y uno
+para \texttt{wazuh-dashboard}. Todos los certificados se generan con una
+validez de diez años, adecuada para un entorno de laboratorio de vida corta;
+un despliegue en producción de un patrón similar de \gls{ca} propia sí
+requeriría un proceso de rotación periódica de certificados no implementado en
+el laboratorio actual.
 
 La comunicación entre el \emph{manager} y el \emph{indexer} OpenSearch sigue el
 mismo patrón mediante el módulo \texttt{opensearch-security}, cuya
