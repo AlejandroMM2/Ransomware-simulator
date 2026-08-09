@@ -1,0 +1,399 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+% capitulos/04_disenyo_experimental.tex
+
+\chapter{Diseño experimental y metodología}
+\label{C:disenyo}
+
+\section{Introducción al diseño experimental}
+
+El diseño adoptado es un \textbf{diseño factorial completo} $4 \times 3 \times 10$:
+cuatro escenarios de ataque, tres estrategias de \emph{backup} y diez repeticiones
+por celda, totalizando 120~ejecuciones completamente automatizadas. Este tipo de
+diseño permite estudiar no solo el efecto principal de cada factor sino también
+las posibles interacciones entre ellos: por ejemplo, si la ventaja de la estrategia~C
+sobre la estrategia~B es diferente según el escenario de ataque.
+
+La elección de diez repeticiones por celda responde a un equilibrio entre la
+potencia estadística deseada y el tiempo de experimentación disponible. Con
+$n = 10$ por celda es posible estimar la mediana con intervalos de confianza
+razonables mediante \emph{bootstrap} no paramétrico, y ejecutar las pruebas de
+Mann-Whitney~U con potencia suficiente para detectar efectos de tamaño mediano o
+grande. Para detectar efectos pequeños (delta de Cliff $< 0.33$) con potencia del
+80\,\% se requerirían al menos 30 observaciones por celda, lo que supondría
+360~ejecuciones y un tiempo estimado de 15-20 horas. Esta limitación se documenta
+en la sección de trabajo futuro.
+
+\section{Variables del experimento}
+
+El experimento sigue un diseño factorial $4 \times 3 \times 10$ con las siguientes
+variables:
+
+\subsection{Variable independiente principal: estrategia de backup}
+
+\begin{description}
+  \item[\stratA\ (control negativo)] Sin copia de seguridad. Representa el peor
+  caso posible y permite cuantificar el impacto absoluto del ransomware sin
+  mecanismo de recuperación. La única vía de recuperación en este caso sería el
+  pago del rescate o la aceptación de la pérdida total de los datos.
+
+  \item[\stratB\ (backup convencional)] Repositorio \restic sobre servidor
+  \gls{sftp}. Los datos se almacenan en el contenedor \emph{restic-sftp},
+  protegidos únicamente por autenticación \gls{ssh} con clave pública. Esta
+  estrategia es representativa de una implementación técnicamente correcta de la
+  regla 3-2-1, pero vulnerable a la destrucción activa del repositorio por un
+  atacante con las credenciales comprometidas.
+
+  \item[\stratC\ (backup inmutable)] Repositorio \restic sobre MinIO con Object
+  Lock COMPLIANCE durante~30~días. Los objetos almacenados no pueden ser
+  modificados ni borrados por ningún usuario durante el periodo de retención,
+  incluyendo el usuario raíz de MinIO. Esta estrategia representa el estado del
+  arte en protección de \emph{backups} frente al ransomware en entornos
+  \emph{on-premise}.
+\end{description}
+
+\subsection{Variable independiente secundaria: escenario de ataque}
+\label{sec:variables-escenario}
+
+\begin{description}
+  \item[E1 — Cifrado local] El atacante transfiere un \emph{script} cifrador en
+  Python (AES-GCM, 256~bits) al \emph{fileserver} mediante SCP y lo ejecuta
+  sobre \texttt{/opt/labprueba}. El cifrador renombra cada fichero añadiendo la
+  extensión \texttt{.encrypted} y elimina el original. Corresponde a la técnica
+  T1486 (\emph{Data Encrypted for Impact}).
+
+  \item[E2 — Destrucción de copias] Ejecuta E1 más el intento de borrado del
+  repositorio \gls{sftp} mediante \gls{ssh} y del \emph{bucket} de MinIO mediante
+  AWS CLI con \texttt{aws s3 rm s3://restic-c/ --recursive}. Corresponde a
+  T1490 (\emph{Inhibit System Recovery}).
+
+  \item[E3 — Movimiento lateral] El atacante accede al \emph{fileserver} mediante
+  \gls{ssh}, localiza la clave privada \texttt{id\_ed25519} en
+  \texttt{/root/.ssh/} y la utiliza para establecer una nueva conexión SSH a la
+  \emph{workstation}. Corresponde a T1021.004 (\emph{Remote Services: SSH}).
+
+  \item[E4 — Exfiltración] El atacante empaqueta los ficheros del \emph{fileserver}
+  en un archivo \texttt{.tar.gz} en \texttt{/tmp} y los transfiere al contenedor
+  atacante mediante SCP. Corresponde a T1041 (\emph{Exfiltration Over C2
+  Channel}).
+\end{description}
+
+\subsection{Variable de control: repetición}
+
+Diez repeticiones por celda factorial ($n = 10$). Entre cada repetición, el
+\emph{script} \texttt{reset\_lab.sh} restaura el laboratorio al estado inicial:
+regenera los 500~ficheros sintéticos, recalcula los \emph{hashes} \emph{baseline},
+limpia el repositorio \gls{sftp} y, según la estrategia, crea un nuevo repositorio
+\restic con un \emph{snapshot} de los 500~ficheros. Para la estrategia~C se
+esperan 120~segundos adicionales tras el \emph{backup} para que los eventos
+\gls{fim} se procesen y no contaminen el \emph{baseline} de detección.
+
+\section{Variables dependientes}
+
+Se miden las siguientes variables dependientes en cada ejecución:
+
+\begin{itemize}
+  \item $\tdetect$ (segundos): tiempo entre el lanzamiento del escenario
+  ($\tlaunch$) y la primera alerta en el \emph{indexer} para el grupo de reglas
+  del escenario:
+  \begin{equation}
+    \Delta T_{\text{detect}} = T_{\text{detect}} - T_{\text{launch}}
+  \end{equation}
+  Se obtiene mediante \emph{polling} al \emph{indexer} cada 5~s. El intervalo de
+  muestreo introduce una imprecisión máxima de $\pm 5$~s, aceptable dado que los
+  tiempos observados oscilan entre 6 y 42~s.
+
+  \item $\mttr$ (segundos): tiempo desde $\tlaunch$ hasta la finalización
+  verificada de la restauración completa de los datos:
+  \begin{equation}
+    \text{MTTR} = T_{\text{restore}} - T_{\text{launch}}
+  \end{equation}
+  Esta definición incluye tanto el tiempo de detección como el tiempo de ejecución
+  del \emph{playbook} de recuperación, reflejando el tiempo total de interrupción
+  de la actividad.
+
+  \item \texttt{recovery\_status} (categórico): \emph{success} cuando la
+  restauración completa todos los ficheros con integridad verificada;
+  \emph{impossible} cuando no existe copia disponible o fue destruida;
+  \emph{partial} cuando la restauración es incompleta.
+
+  \item \texttt{integrity\_match} (booleano): resultado de la comparación entre
+  los hashes SHA-256 de los ficheros restaurados y el \emph{baseline} generado
+  antes del ataque.
+
+  \item \texttt{alert\_count} (entero): número de alertas nuevas generadas en el
+  \emph{indexer} desde el inicio del ataque.
+\end{itemize}
+
+\section{Hipótesis estadísticas}
+
+La hipótesis H1 se formula estadísticamente como:
+\begin{align}
+  H_{1,0} &: \text{la distribución del \gls{mttr} de B es idéntica a la de C} \\
+  H_{1,a} &: \text{el \gls{mttr} de C es estocásticamente menor que el de B}
+\end{align}
+
+La hipótesis H2 se evalúa descriptivamente comparando las medianas de $\tdetect$
+con el valor de referencia de 200~días reportado por IBM X-Force~2024 para la
+detección manual.
+
+La hipótesis H3 se formula como:
+\begin{align}
+  H_{3,0} &: p_B = p_C \quad \text{(tasas de éxito iguales ante E2)} \\
+  H_{3,a} &: p_B < p_C \quad \text{(estrategia C tiene mayor tasa de éxito)}
+\end{align}
+
+\section{Pruebas estadísticas}
+
+La distribución del \gls{mttr} no puede asumir normalidad a priori dado el tamaño
+de muestra reducido ($n = 10$). Se emplean pruebas no paramétricas:
+
+\begin{enumerate}
+  \item \textbf{Mann-Whitney U} (bilateral, $\alpha = 0.05$): para comparar las
+  distribuciones de \gls{mttr} entre estrategias B y C dentro de cada escenario.
+  No asume normalidad ni igualdad de varianzas.
+
+  \item \textbf{Delta de Cliff}~\cite{cliff1993} ($\delta$): para cuantificar el
+  tamaño del efecto en escala $[-1, 1]$ sin asumir normalidad ni homogeneidad de
+  varianzas, a diferencia de medidas paramétricas como la $d$ de Cohen:
+  \begin{equation}
+    \delta = \frac{\#(x_i > y_j) - \#(x_i < y_j)}{n_1 \cdot n_2}
+  \end{equation}
+  Interpretación según los umbrales de Romano et al.~\cite{romano2006}:
+  negligible $|\delta| < 0.147$; pequeño $< 0.33$; mediano $< 0.474$; grande
+  $\geq 0.474$.
+
+  \item \textbf{Bootstrap} de intervalo de confianza al 95\,\% para la diferencia
+  de medianas: 10.000~remuestreos con semilla fija (42) para reproducibilidad.
+  Si el intervalo de confianza no contiene el cero, la diferencia es
+  estadísticamente significativa al nivel $\alpha = 0.05$.
+
+  \item \textbf{Test exacto de Fisher}: para comparar las tasas de éxito de
+  recuperación entre estrategias sobre la tabla de contingencia $2\times 2$.
+  Se prefiere al test $\chi^2$ porque las frecuencias esperadas son pequeñas
+  ($n = 10$ por celda).
+\end{enumerate}
+
+\section{Reglas de detección Wazuh}
+\label{sec:reglas}
+
+Se desarrollaron 13~reglas \emph{custom} con identificadores en el rango
+100200--100231. Dado que \texttt{auditd} no está disponible en el \emph{kernel}
+CachyOS (véase sección~\ref{C:arquitectura}), todas las reglas se basan en dos
+fuentes de datos:
+
+\begin{enumerate}
+  \item \gls{fim} (\texttt{syscheck}) con \texttt{realtime="yes"} en
+  \texttt{/opt/labprueba} y \texttt{/tmp}.
+  \item Eventos \gls{json} estructurados en \texttt{runner.jsonl} procesados como
+  \texttt{localfile}.
+\end{enumerate}
+
+La tabla~\ref{tab:reglas} resume las reglas implementadas.
+
+\begin{table}[ht]
+  \centering
+  \caption{Reglas Wazuh \emph{custom} del laboratorio PFG.}
+  \label{tab:reglas}
+  \rowcolors{2}{tabla-par}{white}
+  \begin{tabularx}{\textwidth}{C{1.5cm} C{2.2cm} X C{1.2cm}}
+    \toprule
+    \rowcolor{tabla-cabecera}
+    \textcolor{white}{\textbf{ID}} &
+    \textcolor{white}{\textbf{Grupo}} &
+    \textcolor{white}{\textbf{Trigger}} &
+    \textcolor{white}{\textbf{Nivel}} \\
+    \midrule
+    100200 & e1\_local   & FIM masivo en /opt/labprueba (15~ev./120\,s) & 10 \\
+    100201 & e1\_local   & Fichero .sh/.py creado en /tmp               & 12 \\
+    100202 & e1\_local   & Ficheros .encrypted/.locked (10~ev./60\,s)   & 11 \\
+    100205 & e1\_local   & runner: scenario=E1, event=execute            & 11 \\
+    100206 & e1\_local   & runner: scenario=E1, event=end                & 10 \\
+    100211 & e2\_destroy & FIM borrado masivo en /srv/backups/           & 13 \\
+    100212 & e2\_destroy & runner: immutability\_verified                & 14 \\
+    100213 & e2\_destroy & runner: immutability\_FAILED                  & 15 \\
+    100214 & e2\_destroy & runner: phase2\_sftp\_delete\_attempt         & 12 \\
+    100220 & e3\_lateral & runner: step3\_lateral\_jump                  & 10 \\
+    100221 & e3\_lateral & runner: step1\_ssh\_fileserver                &  9 \\
+    100230 & e4\_exfil   & runner: step2\_exfil\_command                 & 11 \\
+    100231 & e4\_exfil   & runner: step3\_exfil\_complete                & 12 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Procedimiento de cada ejecución}
+\label{sec:procedimiento}
+
+Cada una de las 120~ejecuciones sigue el siguiente procedimiento automatizado,
+gestionado por \texttt{experiment\_runner.py}:
+
+\begin{enumerate}
+  \item \textbf{Reset}: el \emph{script} \texttt{reset\_lab.sh} regenera
+  500~ficheros sintéticos en \texttt{/opt/labprueba}, calcula sus \emph{hashes}
+  \emph{baseline}, limpia el repositorio \gls{sftp} y, según la estrategia, crea
+  un nuevo repositorio \restic con un \emph{snapshot} de los 500~ficheros.
+
+  \item \textbf{Baseline}: el \emph{runner} consulta el \emph{indexer} para
+  obtener el número actual de alertas del grupo de reglas del escenario activo.
+
+  \item \textbf{Ataque}: se lanza el escenario mediante \texttt{docker exec}
+  sobre el contenedor atacante. Se registra $\tlaunch$ en nanosegundos mediante
+  el reloj de alta resolución del sistema.
+
+  \item \textbf{Detección}: el \emph{runner} realiza \emph{polling} al
+  \emph{indexer} cada 5~s hasta detectar un delta positivo respecto al
+  \emph{baseline}. Cuando $\Delta N > 0$, se registra $\tdetect$.
+
+  \item \textbf{Recuperación}: se ejecuta el \emph{playbook} correspondiente a
+  la estrategia. El \emph{playbook} verifica la disponibilidad del repositorio,
+  limpia el directorio víctima, restaura los ficheros y comprueba la integridad
+  por \emph{hash} SHA-256.
+
+  \item \textbf{Registro}: se escribe una fila en el fichero \texttt{raw.csv}
+  con todas las métricas. Se espera un \emph{cooldown} de 30~s antes de la
+  siguiente ejecución.
+\end{enumerate}
+
+\section{Control de errores en la automatización}
+\label{sec:control-errores}
+
+La ejecución desatendida de 120~repeticiones a lo largo de aproximadamente
+cuatro horas exige que el orquestador \texttt{experiment\_runner.py} sea
+resiliente frente a fallos transitorios sin comprometer la validez de los datos
+recogidos. El diseño adopta tres mecanismos de control de errores
+complementarios.
+
+En primer lugar, cada una de las seis fases del procedimiento descrito en la
+sección~\ref{sec:procedimiento} --- \emph{reset}, \emph{baseline}, ataque,
+detección, recuperación y registro --- se ejecuta dentro de un bloque con
+tiempo máximo de espera (\emph{timeout}) explícito y diferenciado: 120~s para
+el \emph{reset} completo del entorno, 90~s para el \emph{polling} de
+detección (18~ciclos de 5~s, con margen sobre el máximo de 41.9~s observado en
+la fase de calibración) y 180~s para la fase de recuperación, calibrado sobre el
+peor caso observado en la estrategia~C del escenario~E4. Si cualquier fase
+excede su \emph{timeout}, la ejecución se marca explícitamente con
+\texttt{recovery\_status~=~timeout} en lugar de forzar un valor de MTTR
+artificial, evitando así contaminar el análisis estadístico del
+capítulo~\ref{C:resultados} con observaciones censuradas tratadas como
+válidas. Como se indica en la sección~\ref{sec:experimento-ejecutado} del
+capítulo~\ref{C:resultados}, ninguna de las 120~ejecuciones activó este
+mecanismo durante el experimento final.
+
+En segundo lugar, el orquestador verifica, antes de iniciar cada repetición, que
+los nueve contenedores del laboratorio reportan estado \emph{healthy} o
+\emph{Active} (según corresponda a Docker o al agente Wazuh), reutilizando la
+misma lógica de comprobación que el \emph{script} \texttt{verify\_lab.sh}
+descrito en el anexo~C. Si algún contenedor no está operativo, la ejecución se
+pausa y reintenta la comprobación cada 10~s durante un máximo de 60~s antes de
+abortar con un mensaje de diagnóstico, en lugar de proceder con un entorno
+potencialmente inconsistente.
+
+En tercer lugar, todos los errores no capturados por los dos mecanismos
+anteriores --- por ejemplo, una excepción de red al consultar la \gls{api} del
+\emph{indexer} --- se registran con su traza completa en un fichero de
+\emph{log} separado del CSV de resultados (\texttt{runner\_errors.log}), y la
+repetición afectada se repite automáticamente una única vez antes de marcarse
+como fallida, siguiendo el principio de que un fallo de infraestructura
+transitorio no debe descartarse como si fuera un resultado experimental
+válido. Esta separación entre errores de infraestructura y resultados
+experimentales es la razón por la que, como se señala en la
+sección~\ref{sec:experimento-ejecutado} del capítulo~\ref{C:resultados}, el
+CSV final no contiene ninguna fila con estados inconsistentes: cualquier
+ejecución que no pudo completarse correctamente fue reintentada antes de
+consolidar los resultados, en lugar de aparecer como una observación anómala en
+el conjunto de datos analizado.
+
+\section{Validez del diseño experimental}
+
+\subsection{Validez interna}
+
+La validez interna se garantiza mediante varios mecanismos. El \emph{reset}
+completo entre ejecuciones asegura que cada repetición parte exactamente del
+mismo estado inicial, eliminando la influencia de estados residuales. El registro
+automatizado por el \emph{script} orquestador elimina errores de anotación manual.
+La verificación de integridad por \emph{hash} SHA-256 garantiza que los ficheros
+restaurados son byte a byte idénticos a los originales.
+
+El orden de ejecución (A, B, C para cada escenario, en orden numérico de escenario)
+es determinista, lo que facilita la reproducibilidad pero podría introducir sesgos
+de orden si el estado del sistema cambia con el tiempo. Durante las cuatro horas
+del experimento no se observó ninguna degradación del rendimiento que pudiera
+atribuirse al orden de ejecución.
+
+\subsection{Validez externa}
+
+La validez externa está limitada por el uso de un entorno sintético. Los resultados
+son directamente aplicables a organizaciones que usen arquitecturas de servidor de
+ficheros Linux con \emph{backup} gestionado por \restic sobre \gls{sftp} o S3, y
+donde el atacante tenga acceso \gls{ssh} con clave privada.
+
+Los resultados son menos directamente aplicables a entornos con mayor
+heterogeneidad tecnológica, sistemas Windows, o configuraciones de \emph{backup}
+basadas en otras tecnologías. La extrapolación a cifradores reales requiere cautela
+dado que el cifrador sintético utilizado no replica la velocidad de cifradores
+como LockBit~3.0.
+
+\subsection{Validez de constructo}
+\label{sec:validez-constructo}
+
+La validez de constructo evalúa si las métricas operacionalizadas
+($\tdetect$, \gls{mttr},
+\mbox{\texttt{recovery\_status}})
+capturan efectivamente los conceptos teóricos de interés (capacidad de detección,
+capacidad de recuperación).
+
+El principal riesgo es que $\tdetect$, medido como tiempo hasta la primera alerta
+del \emph{indexer}, no capture exactamente el instante en que el ataque comienza
+a ser peligroso para la organización. En un entorno real, el atacante puede
+permanecer en la red durante semanas antes de desplegar el cifrador, y la primera
+alerta del \gls{siem} puede no coincidir con el inicio de la fase peligrosa del
+ataque. En el laboratorio, $\tlaunch$ coincide exactamente con el inicio del
+escenario, lo que elimina esta ambigüedad.
+
+El \gls{mttr}, definido como tiempo desde el lanzamiento del ataque hasta la
+verificación exitosa de la restauración, es comparable al \gls{rto} de los planes
+de continuidad de negocio, aunque en un entorno real incluiría también el tiempo
+de detección, notificación y toma de decisiones humanas que no se captura en el
+laboratorio.
+
+La variable \mbox{\texttt{recovery\_status}} captura correctamente la diferencia
+cualitativa más importante del experimento: la distinción entre recuperación
+exitosa, parcial e imposible.
+
+\subsection{Validez de conclusión estadística}
+\label{sec:validez-estadistica}
+
+La validez de conclusión estadística evalúa si las relaciones observadas entre
+las variables independientes y dependientes están correctamente respaldadas por
+el análisis estadístico aplicado, con independencia de si dicha relación tiene
+sentido teórico (validez de constructo) o es generalizable (validez externa).
+
+Tres decisiones metodológicas de este trabajo están orientadas específicamente a
+proteger esta dimensión de la validez. En primer lugar, el uso sistemático de
+pruebas no paramétricas (Mann-Whitney~U, test exacto de Fisher) evita la
+violación del supuesto de normalidad que se produciría al aplicar pruebas $t$ o
+ANOVA sobre muestras de tamaño $n=10$, para las que el teorema central del
+límite no ofrece garantías suficientes. En segundo lugar, la comunicación
+conjunta del $p$-valor, el tamaño del efecto (delta de Cliff) y el intervalo de
+confianza \emph{bootstrap} evita la interpretación errónea, frecuente en trabajos
+con muestras pequeñas, de que una ausencia de significación estadística
+($p > 0.05$) implica necesariamente ausencia de efecto real: el caso del
+escenario~E4 (Cliff~$\delta = 0.360$, efecto mediano, $p = 0.186$) ejemplifica
+precisamente esta distinción, y se discute en detalle en el
+capítulo~\ref{C:discusion}. En tercer lugar, la semilla fija (42) empleada en el
+remuestreo \emph{bootstrap} garantiza que los intervalos de confianza reportados
+son exactamente reproducibles por terceros, evitando que la variabilidad del
+propio procedimiento de remuestreo se confunda con variabilidad del fenómeno
+estudiado.
+
+El principal riesgo residual para la validez de conclusión estadística en este
+trabajo es la reducida potencia estadística derivada de $n=10$ por celda, ya
+señalada anteriormente en este capítulo: con este tamaño muestral, la
+probabilidad de cometer un error de tipo~II --- no detectar un efecto que
+realmente existe --- es considerable para efectos de tamaño pequeño o mediano,
+como el observado en~E4. Este riesgo se documenta explícitamente como limitación
+en el capítulo~\ref{C:discusion} y motiva la primera línea de trabajo futuro
+propuesta en el capítulo~\ref{C:conclusiones}.
+
+\end{document}

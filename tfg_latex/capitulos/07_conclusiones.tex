@@ -1,0 +1,261 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+\chapter{Conclusiones y trabajo futuro}
+\label{C:conclusiones}
+
+\section{Conclusiones}
+
+Este trabajo ha presentado el diseño, implementación y evaluación de un laboratorio
+de simulación de ransomware basado en contenedores Docker con un \emph{stack}
+\gls{siem} completo. El trabajo ha cubierto el ciclo completo de un proyecto de
+investigación experimental en ciberseguridad: revisión bibliográfica, diseño del
+entorno, implementación, ejecución de 120~experimentos automatizados, análisis
+estadístico riguroso y validación con técnicas reales de la matriz MITRE ATT\&CK.
+
+\subsection{Cumplimiento de los objetivos específicos}
+
+Los siete objetivos específicos definidos en la introducción han sido alcanzados:
+
+\begin{description}
+  \item[OE1 — Laboratorio reproducible] Se ha diseñado e implementado un
+  laboratorio de nueve contenedores Docker completamente automatizado, publicado
+  como software libre en GitHub, que puede reproducirse en cualquier máquina Linux
+  con Docker instalado en aproximadamente diez minutos. La validación en máquina
+  virtual Ubuntu~24.04 confirmó esta reproducibilidad.
+
+  \item[OE2 — Tres estrategias de backup] Se han implementado y comparado las
+  tres estrategias definidas: control negativo sin backup, repositorio \restic
+  sobre SFTP convencional y repositorio \restic sobre MinIO con Object Lock
+  COMPLIANCE. Las diferencias entre estrategias han quedado completamente
+  cuantificadas.
+
+  \item[OE3 — Cuatro escenarios de ataque] Se han implementado y validado los
+  cuatro escenarios correspondientes a las técnicas T1486, T1490, T1021.004 y
+  T1041 de la matriz MITRE ATT\&CK.
+
+  \item[OE4 — Instrumentación con Wazuh] Se han desarrollado 13~reglas de
+  detección custom que cubren los cuatro escenarios mediante \gls{fim} y eventos
+  \gls{json} estructurados, adaptadas a las limitaciones técnicas del entorno.
+
+  \item[OE5 — Diseño factorial y análisis estadístico] Se han ejecutado las
+  120~ejecuciones del diseño factorial y se han analizado los resultados con
+  Mann-Whitney~U, delta de Cliff, \emph{bootstrap} de intervalos de confianza y
+  test exacto de Fisher.
+
+  \item[OE6 — Validación con Atomic Red Team] Las cuatro técnicas ATT\&CK han
+  sido validadas con tests de Atomic Red Team ejecutados sobre el laboratorio
+  real, confirmando que las reglas detectan técnicas de ataque reales más allá
+  de los escenarios sintéticos.
+
+  \item[OE7 — Publicación como software libre] El repositorio completo está
+  disponible públicamente en GitHub con documentación suficiente para la
+  reproducción independiente de los experimentos.
+\end{description}
+
+\subsection{Sobre la hipótesis H1}
+
+La comparación estadística del \gls{mttr} entre las estrategias~B y~C no muestra
+diferencias significativas en los escenarios donde ambas pueden recuperarse
+(E1: $p = 0.473$; E3: $p = 0.623$; E4: $p = 0.186$). Los tamaños del efecto son
+pequeños o negligibles en E1 y E3, y solo E4 alcanza un efecto mediano
+(Cliff~$\delta = 0.360$) sin alcanzar significación estadística.
+
+\textbf{La hipótesis H1 se rechaza}: la ventaja del almacenamiento inmutable no
+reside en la velocidad de restauración, sino en la garantía de recuperabilidad
+cuando el repositorio ha sido destruido.
+
+\subsection{Sobre la hipótesis H2}
+
+Los tiempos de detección mediante \gls{siem} oscilan entre 5.7 y 41.9~segundos,
+frente a los más de 200~días que la literatura reporta para la detección manual.
+La diferencia de más de cinco órdenes de magnitud es concluyente.
+
+\textbf{La hipótesis H2 se confirma} con amplísimo margen: la instrumentación con
+un \gls{siem} transforma cualitativamente la capacidad de respuesta ante incidentes
+de ransomware, pasando de una detección que puede tardar meses a una detección que
+tarda segundos.
+
+\subsection{Sobre la hipótesis H3}
+
+El test exacto de Fisher sobre el escenario~E2 produce $p < 0.001$ (0/10 éxitos
+para B vs. 10/10 para C). La magnitud de la diferencia es la máxima posible.
+
+\textbf{La hipótesis H3 se confirma}: Object Lock COMPLIANCE proporciona una
+ventaja \emph{cualitativa} sobre el \emph{backup} convencional al garantizar la
+recuperabilidad ante la destrucción activa del repositorio.
+
+\subsection{Sobre el laboratorio como contribución}
+
+El laboratorio desarrollado constituye en sí mismo una contribución al campo. Sus
+características principales son:
+
+\begin{itemize}
+  \item \textbf{Reproducibilidad total}: cualquier investigador puede replicar el
+  experimento clonando el repositorio.
+  \item \textbf{Automatización completa}: las 120~ejecuciones se completan en
+  cuatro horas sin intervención manual.
+  \item \textbf{Extensibilidad modular}: nuevos escenarios de ataque o estrategias
+  de backup pueden añadirse sin modificar la estructura central.
+  \item \textbf{Metodología estadística rigurosa}: pruebas no paramétricas,
+  tamaños del efecto e intervalos de confianza \emph{bootstrap}.
+  \item \textbf{Validación con herramientas reales}: Atomic Red Team confirma que
+  las reglas detectan técnicas reales más allá de los escenarios del experimento.
+\end{itemize}
+
+\subsection{Reflexión final}
+
+La respuesta que proporciona este trabajo es inequívoca: una estrategia de
+\emph{backup} convencional, por bien implementada que esté, es vulnerable a un
+atacante que obtiene las credenciales del servidor de \emph{backup}. El
+almacenamiento inmutable con Object Lock COMPLIANCE elimina esa vulnerabilidad de
+forma efectiva y con un coste adicional modesto respecto a una solución SFTP
+convencional.
+
+La combinación de almacenamiento inmutable con un \gls{siem} bien configurado
+proporciona una defensa en profundidad que eleva significativamente el coste y la
+complejidad del ataque para el adversario: no solo garantiza que habrá algo que
+restaurar, sino que la organización sabrá que está siendo atacada en cuestión de
+segundos.
+
+\section{Trabajo futuro}
+
+Las siguientes líneas de trabajo futuro se identifican como extensiones naturales
+de este estudio:
+
+\begin{enumerate}[label=TF\arabic*., leftmargin=2.5cm]
+
+  \item \textbf{Aumento del tamaño de muestra}: ampliar las repeticiones por celda
+  a al menos 30 para detectar efectos medianos con potencia del 80\,\%. Esto
+  permitiría confirmar o refutar la diferencia marginal de E4
+  (Cliff~$\delta = 0.360$, $p = 0.186$) y proporcionar intervalos de confianza
+  más estrechos.
+
+  \item \textbf{Cifradores reales en entorno sandbox}: sustituir el cifrador
+  sintético de Python por muestras reales de \emph{LockBit}~3.0 o \emph{BlackCat}
+  en un entorno aislado sin acceso exterior. Esto produciría tiempos de cifrado
+  más representativos e identificaría diferencias en los patrones de acceso a
+  ficheros que afecten al \gls{fim}.
+
+  \item \textbf{Ciclo de vida completo del ataque}: implementar las fases de
+  reconocimiento previo al ataque y la persistencia del agente malicioso para
+  simular el comportamiento de un \gls{apt} real. Esto permitiría evaluar la
+  detección temprana antes del cifrado.
+
+  \item \textbf{Evaluación con múltiples snapshots en estrategia B}: implementar
+  una política de retención con \emph{snapshots} horarios y evaluar cuántos
+  \emph{snapshots} necesita el atacante destruir antes de que el \gls{siem} active
+  procedimientos de contención.
+
+  \item \textbf{Respuesta activa automática de Wazuh}: integrar las capacidades
+  de \emph{active response} de \wazuh (aislamiento de red, bloqueo de procesos)
+  y medir el impacto sobre el daño total del ataque.
+
+  \item \textbf{Validación con Atomic Red Team para T1490 en Linux}: extender la
+  validación cuando estén disponibles tests oficiales de Atomic Red Team para Linux
+  en la técnica T1490.
+
+  \item \textbf{Detección basada en aprendizaje automático}: entrenar modelos de
+  detección de anomalías (Isolation Forest, Autoencoder) sobre los datos de
+  \emph{log} generados. La hipótesis es que estos modelos podrían detectar el
+  ataque antes de que los umbrales de frecuencia del \gls{fim} se superen.
+
+  \item \textbf{Medición del overhead de monitorización FIM}: cuantificar
+  sistemáticamente el impacto en \gls{cpu} y E/S de disco que introduce el
+  \gls{fim} en tiempo real sobre el \emph{fileserver} durante el cifrado activo,
+  para determinar si la monitorización introduce algún sesgo en los tiempos medidos
+  y si es viable en servidores con alta carga de trabajo.
+
+  \item \textbf{Comparación con el modo Governance de Object Lock}: este trabajo
+  evalúa exclusivamente el modo COMPLIANCE con 30~días de retención. No se comparó
+  con el modo Governance, que permite a usuarios con permisos especiales anular la
+  protección, ni con períodos de retención distintos (7, 14 o 90~días). Un análisis
+  de la relación entre período de retención, coste de almacenamiento y nivel de
+  protección aportaría criterios prácticos para adaptar la estrategia~C a distintos
+  presupuestos y requisitos normativos.
+
+  \item \textbf{Paneles de visualización en el dashboard de Wazuh}: desarrollar
+  paneles y gráficos en el dashboard de Wazuh que permitan a un operario de
+  seguridad visualizar en tiempo real la evolución de las alertas: distribución
+  por escenario, nivel de alerta, agente origen y línea temporal de detección.
+  Esta visualización facilitaría la monitorización continua sin necesidad de
+  consultar la \gls{api} REST directamente.
+
+  \item \textbf{Barrido sistemático de umbrales de frecuencia \gls{fim}}:
+  como se plantea en la sección~\ref{sec:sensibilidad} del
+  capítulo~\ref{C:discusion}, realizar un análisis de sensibilidad que ejecute
+  el escenario~E1 con distintas combinaciones de \texttt{frequency} y
+  \texttt{timeframe} en las reglas~100200 y~100202, midiendo el compromiso
+  resultante entre tiempo de detección y tasa de falsos positivos ante
+  actividad legítima de copia masiva de ficheros. Esto permitiría sustituir la
+  calibración actual, basada en observación durante la fase de desarrollo, por
+  una curva de compromiso caracterizada empíricamente.
+
+  \item \textbf{Extensión a orquestadores de contenedores distintos de Docker
+  Compose}: evaluar la portabilidad de la arquitectura descrita en el
+  capítulo~\ref{C:arquitectura} a Kubernetes, sustituyendo las comprobaciones
+  de \texttt{healthcheck} de Docker Compose (sección~\ref{sec:recursos-healthchecks})
+  por sondas de disponibilidad (\emph{readiness}/\emph{liveness probes})
+  nativas. Esta extensión resultaría especialmente relevante para organizaciones
+  que ya operan sus cargas de trabajo sobre Kubernetes y que deseasen adoptar
+  el laboratorio sin introducir una segunda herramienta de orquestación de
+  contenedores en su infraestructura.
+
+\end{enumerate}
+
+\section{Difusión y aplicabilidad como recurso docente}
+\label{sec:difusion}
+
+Más allá de su contribución como trabajo de investigación experimental, el
+diseño modular del laboratorio --- ya destacado como característica principal
+en la sección anterior --- le confiere un valor potencial como recurso docente
+para la formación en ciberseguridad defensiva. La separación entre la
+infraestructura de orquestación (\texttt{scripts/}), la lógica de cada
+escenario de ataque (\texttt{simulators/}) y las reglas de detección
+(\texttt{lab-config/wazuh/}), descrita en el anexo~C, permite emplear
+subconjuntos del laboratorio de forma aislada: un curso introductorio a
+\gls{fim} podría limitarse al escenario~E1 y a las reglas~100200--100206, sin
+necesidad de desplegar el resto del \emph{stack} de detección de movimiento
+lateral o exfiltración.
+
+Esta aplicabilidad docente es coherente con la tendencia, documentada en el
+capítulo~\ref{C:estado_arte} a través del trabajo de Bitzki et
+al.~\cite{netsecbed2026} sobre \emph{testbeds} nativos en contenedores, de
+emplear infraestructuras ligeras y reproducibles tanto para investigación como
+para formación práctica en ciberseguridad, en contraposición a los laboratorios
+tradicionales basados en máquinas virtuales completas, cuyo coste de
+despliegue y mantenimiento dificulta su uso en un contexto docente con
+recursos limitados. El requisito de recursos documentado en el anexo~C
+(16\,GB de \gls{ram}, cuatro núcleos) es compatible con el equipamiento
+informático habitual de un aula universitaria de nivel de grado.
+
+La licencia MIT bajo la que se publica el código, descrita en la última
+sección del anexo~C, permite explícitamente esta reutilización con fines
+docentes, incluyendo la modificación de los escenarios existentes o la
+incorporación de escenarios adicionales por parte de terceros, sin más
+condición que mantener el aviso de \emph{copyright} original.
+
+\section{Consideraciones éticas}
+
+Todo el trabajo se ha realizado en un entorno completamente aislado de la red
+pública: los contenedores operan en una red privada Docker sin conexión a Internet
+durante la ejecución de los escenarios de ataque. Los \emph{scripts} de ataque
+desarrollados (el cifrador, la destrucción de repositorios, el movimiento lateral
+y la exfiltración) son herramientas de propósito específico diseñadas para el
+laboratorio y carecen de los mecanismos de propagación, evasión de antivirus y
+comunicación con servidores de mando y control que caracterizarían a un
+\emph{malware} real.
+
+El repositorio público del proyecto incluye únicamente el código del laboratorio y
+la infraestructura de automatización, no código malicioso reutilizable fuera del
+contexto del laboratorio. El cifrador incluido genera una clave aleatoria para
+cada ejecución que solo existe en memoria durante esa ejecución, garantizando que
+los ficheros cifrados durante el experimento no pueden descifrase sin la clave de
+esa ejecución específica.
+
+La validación con Atomic Red Team se realizó usando herramientas del propio sistema
+objetivo siguiendo las directrices de uso responsable del \emph{framework}, que
+establece que los tests deben ejecutarse únicamente sobre sistemas propios o con
+autorización explícita.
+
+\end{document}

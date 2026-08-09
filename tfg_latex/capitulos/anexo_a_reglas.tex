@@ -1,0 +1,219 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+\chapter{Reglas Wazuh completas}
+\label{anx:reglas}
+
+Este anexo reproduce el fichero \texttt{local\_rules.xml} completo
+desarrollado para el laboratorio. Las reglas cubren los cuatro escenarios
+del experimento y están organizadas en grupos para facilitar su consulta.
+
+\section{Estructura del fichero}
+
+El fichero se divide en cuatro secciones. Cada sección corresponde a un
+escenario de ataque y agrupa las reglas relevantes bajo un identificador
+de grupo compartido (\texttt{e1\_local}, \texttt{e2\_destroy},
+\texttt{e3\_lateral}, \texttt{e4\_exfil}). Todas las reglas heredan del
+grupo padre \texttt{lab}, lo que permite filtrar todas las alertas del
+laboratorio con una única consulta al indexer.
+
+\section{Reglas del escenario E1 (cifrado local)}
+
+\begin{lstlisting}[language=XML,
+  caption={Reglas de detección para el escenario E1 (T1486).},
+  label={lst:reglas-e1}]
+<!-- E1: Cifrado masivo (T1486) -->
+<rule id="100200" level="10" frequency="15" timeframe="120">
+  <if_matched_sid>550</if_matched_sid>
+  <field name="syscheck.path">/opt/labprueba</field>
+  <description>E1: Modificacion masiva en /opt/labprueba</description>
+  <group>e1_local,lab</group>
+</rule>
+
+<rule id="100201" level="12">
+  <if_sid>550,554</if_sid>
+  <field name="syscheck.path">/tmp</field>
+  <field name="syscheck.path">\.sh$|\.py$|\.pl$|\.bin$</field>
+  <description>E1: Script ejecutable creado en /tmp</description>
+  <group>e1_local,lab</group>
+</rule>
+
+<rule id="100202" level="11" frequency="10" timeframe="60">
+  <if_matched_sid>554</if_matched_sid>
+  <field name="syscheck.path">\.encrypted$|\.locked$|\.crypto$</field>
+  <description>E1: Ficheros cifrados masivos detectados</description>
+  <group>e1_local,lab</group>
+</rule>
+
+<rule id="100205" level="11">
+  <decoded_as>json</decoded_as>
+  <field name="scenario">E1</field>
+  <field name="event">execute</field>
+  <description>E1: Inicio de ejecucion del cifrador</description>
+  <group>e1_local,lab</group>
+</rule>
+
+<rule id="100206" level="10">
+  <decoded_as>json</decoded_as>
+  <field name="scenario">E1</field>
+  <field name="event">end</field>
+  <description>E1: Cifrado completado</description>
+  <group>e1_local,lab</group>
+</rule>
+\end{lstlisting}
+
+Este grupo de reglas combina deliberadamente dos fuentes de señal con
+sensibilidades distintas. Las reglas 100200 y 100202 dependen de umbrales de
+frecuencia (\texttt{frequency}/\texttt{timeframe}) sobre eventos \gls{fim}
+brutos (\texttt{if\_matched\_sid} 550 y 554, correspondientes a modificación y
+adición de fichero respectivamente en el motor de reglas base de Wazuh), y por
+tanto requieren que se acumule un número mínimo de cambios antes de disparar: 15
+modificaciones en 120~s para la 100200, y 10 ficheros con extensión
+\texttt{.encrypted}, \texttt{.locked} o \texttt{.crypto} en 60~s para la
+100202. La regla 100201, en cambio, no depende de frecuencia alguna: dispara con
+un único evento de creación de fichero ejecutable en \texttt{/tmp}, lo que la
+convierte en la señal más temprana disponible dentro de este grupo, a costa de
+un mayor riesgo de falso positivo si un proceso legítimo del sistema crea
+\emph{scripts} temporales con esa misma extensión. Las reglas 100205 y 100206,
+basadas en los eventos estructurados de \texttt{runner.jsonl} descritos en la
+sección~\ref{sec:runner} del capítulo~\ref{C:arquitectura}, no dependen en
+absoluto del \gls{fim} y por ello disparan de forma prácticamente instantánea
+respecto al lanzamiento del escenario, lo que explica por qué, como se discute en
+la sección~\ref{sec:ventajas-runner} del capítulo~\ref{C:discusion}, estas
+reglas son habitualmente las primeras en generar alerta durante la ejecución real
+del experimento.
+
+\section{Reglas del escenario E2 (destrucción de copias)}
+
+\begin{lstlisting}[language=XML,
+  caption={Reglas de detección para el escenario E2 (T1490).},
+  label={lst:reglas-e2}]
+<!-- E2: Destruccion de backups (T1490) -->
+<rule id="100211" level="13" frequency="5" timeframe="30">
+  <if_matched_sid>553</if_matched_sid>
+  <field name="syscheck.path">/srv/backups</field>
+  <description>E2: Borrado masivo en repositorio SFTP</description>
+  <group>e2_destroy,lab</group>
+</rule>
+
+<rule id="100212" level="14">
+  <decoded_as>json</decoded_as>
+  <field name="scenario">E2</field>
+  <field name="event">immutability_verified</field>
+  <description>E2: Object Lock bloqueo intento de borrado</description>
+  <group>e2_destroy,lab</group>
+</rule>
+
+<rule id="100213" level="15">
+  <decoded_as>json</decoded_as>
+  <field name="scenario">E2</field>
+  <field name="event">immutability_FAILED</field>
+  <description>E2: ALERTA CRITICA - Object Lock no protegio el bucket</description>
+  <group>e2_destroy,lab</group>
+</rule>
+
+<rule id="100214" level="12">
+  <decoded_as>json</decoded_as>
+  <field name="scenario">E2</field>
+  <field name="event">phase2_sftp_delete_attempt</field>
+  <description>E2: Intento de destruccion del repositorio SFTP</description>
+  <group>e2_destroy,lab</group>
+</rule>
+\end{lstlisting}
+
+Este es el grupo de reglas más crítico del laboratorio, tanto por el nivel de
+severidad asignado --- los niveles 13 a 15 son los más altos de las 13~reglas
+\emph{custom}, reservados para eventos que implican pérdida irreversible de
+datos --- como por su papel central en la evidencia experimental discutida en la
+sección~\ref{sec:coste-beneficio} del capítulo~\ref{C:discusion}. La regla
+100211 replica sobre el repositorio de \emph{backup} la misma lógica de
+frecuencia que la 100200 aplica sobre el directorio víctima, pero con un umbral
+deliberadamente más bajo (5~eventos en 30~s frente a 15~en~120~s) porque un
+borrado masivo de un repositorio de \emph{backup} es, por definición, una
+operación que no debería producirse nunca en condiciones normales, a diferencia
+de la actividad legítima que sí puede producirse ocasionalmente sobre el
+directorio de datos del \emph{fileserver}. Las reglas 100212 y 100213 son
+mutuamente excluyentes por diseño y representan los dos únicos resultados
+posibles del intento de destrucción del \emph{bucket} protegido: la~100212 es
+la confirmación positiva de que Object Lock funcionó como se esperaba, mientras
+que la~100213, de nivel~15 (el máximo del laboratorio), está reservada para un
+escenario que --- de dispararse --- indicaría un fallo grave de la protección
+WORM y que, de hecho, no se activó en ninguna de las 120~ejecuciones del
+experimento principal.
+
+\section{Reglas del escenario E3 (movimiento lateral)}
+
+\begin{lstlisting}[language=XML,
+  caption={Reglas de detección para el escenario E3 (T1021.004).},
+  label={lst:reglas-e3}]
+<!-- E3: Movimiento lateral SSH (T1021.004) -->
+<rule id="100220" level="10">
+  <decoded_as>json</decoded_as>
+  <field name="scenario">E3</field>
+  <field name="event">step3_lateral_jump</field>
+  <description>E3: Salto lateral SSH a workstation detectado</description>
+  <group>e3_lateral,lab</group>
+</rule>
+
+<rule id="100221" level="9">
+  <decoded_as>json</decoded_as>
+  <field name="scenario">E3</field>
+  <field name="event">step1_ssh_fileserver</field>
+  <description>E3: Acceso SSH inicial al fileserver</description>
+  <group>e3_lateral,lab</group>
+</rule>
+\end{lstlisting}
+
+Es el grupo de reglas más reducido del laboratorio, con únicamente dos reglas,
+ambas basadas en eventos estructurados y sin ninguna regla derivada de
+\gls{fim}. Esta decisión de diseño responde a que el movimiento lateral por
+\gls{ssh} no deja, por sí mismo, ningún rastro en el sistema de ficheros de la
+\emph{workstation} hasta que el atacante ejecuta una acción posterior sobre
+ella; el propio establecimiento de la sesión SSH es la señal relevante, no una
+consecuencia indirecta observable por \gls{fim}. Nótese que el nivel de la regla
+100221 (9) es intencionadamente el más bajo de todo el conjunto de reglas
+\emph{custom}: un acceso SSH inicial al \emph{fileserver} es, en un despliegue
+real, un evento que puede corresponder tanto a actividad legítima de
+administración como al primer paso de un ataque, por lo que se prioriza como
+señal de contexto más que como alerta de alta confianza, reservando el nivel~10
+para la confirmación del salto lateral efectivo mediante la regla~100220.
+
+\section{Reglas del escenario E4 (exfiltración)}
+
+\begin{lstlisting}[language=XML,
+  caption={Reglas de detección para el escenario E4 (T1041).},
+  label={lst:reglas-e4}]
+<!-- E4: Exfiltracion de datos (T1041) -->
+<rule id="100230" level="11">
+  <decoded_as>json</decoded_as>
+  <field name="scenario">E4</field>
+  <field name="event">step2_exfil_command</field>
+  <description>E4: Inicio de comando de exfiltracion</description>
+  <group>e4_exfil,lab</group>
+</rule>
+
+<rule id="100231" level="12">
+  <decoded_as>json</decoded_as>
+  <field name="scenario">E4</field>
+  <field name="event">step3_exfil_complete</field>
+  <description>E4: Exfiltracion de datos completada</description>
+  <group>e4_exfil,lab</group>
+</rule>
+\end{lstlisting}
+
+Al igual que en el grupo E3, ninguna regla de este bloque depende del
+\gls{fim}, ya que la exfiltración mediante SCP no modifica el contenido del
+directorio monitorizado en el \emph{fileserver}: los ficheros se leen y se
+transmiten, pero no se crean, modifican ni eliminan localmente. Esta es la razón
+estructural por la que, como se explica en la sección~\ref{sec:tdetect-e4} del
+capítulo~\ref{C:resultados}, este escenario presenta los tiempos de detección más
+elevados de todo el experimento (mediana 39.3--41.9~s): la alerta solo puede
+generarse cuando se recibe el evento \texttt{step3\_exfil\_complete} al
+finalizar la transferencia, y no existe ninguna señal intermedia equivalente a
+la que ofrece el \gls{fim} en los escenarios E1 y E2. Esta limitación se retoma
+como línea de trabajo futuro en el capítulo~\ref{C:conclusiones}: una posible
+mejora sería instrumentar también el volumen de tráfico saliente del
+\emph{fileserver} para generar una alerta temprana durante la transferencia, en
+lugar de únicamente al completarse.
+
+\end{document}

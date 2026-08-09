@@ -1,0 +1,321 @@
+# =============================================================================
+#  PFG — Laboratorio de ransomware en contenedores
+#  Orden de arranque: indexer → manager → dashboard/víctimas/atacante/backup
+#  MinIO arranca en paralelo (no depende de Wazuh)
+# =============================================================================
+
+networks:
+  lab-net:
+    driver: bridge
+    # Cambia a `true` cuando todo esté configurado (aislamiento total)
+    internal: false
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+volumes:
+  # Datos de las víctimas fileserver y workstation
+  labprueba-fs:
+  labprueba-ws:
+
+  # Almacenamiento de copias 
+  minio-data:
+  restic-sftp-data:
+
+  # Datos y logs de Wazuh
+  wazuh-manager-etc:
+  wazuh-manager-var:
+  wazuh-manager-logs:
+  wazuh-indexer-data:
+
+  # Logs compartidos entre MinIO y wazuh-manager
+  # Así es como las reglas 100212/100213/100220/100230 detectan eventos del runner sin necesidad de auditd.
+  # El attacker escribe en él (/var/log/lab/runner.jsonl)
+  # El manager lo lee como fuente de logs (:ro en su montaje)
+  lab-logs:
+
+services:
+
+  # ============================================================
+  # FASE 1: Wazuh Indexer (OpenSearch)
+  # Debe estar healthy antes de que arranque el manager
+  # ============================================================
+  wazuh-indexer:
+    image: wazuh/wazuh-indexer:4.7.5
+    container_name: wazuh-indexer
+    restart: unless-stopped
+    hostname: wazuh-indexer
+    networks:
+      lab-net:
+        ipv4_address: 172.20.0.21
+    environment:
+      - INDEXER_PASSWORD=admin
+## ${INDEXER_PASSWORD}
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - wazuh-indexer-data:/var/lib/wazuh-indexer
+      - ./certs/wazuh-indexer/indexer.pem:/usr/share/wazuh-indexer/certs/indexer.pem:ro
+      - ./certs/wazuh-indexer/indexer-key.pem:/usr/share/wazuh-indexer/certs/indexer-key.pem:ro
+      - ./certs/wazuh-indexer/root-ca.pem:/usr/share/wazuh-indexer/certs/root-ca.pem:ro
+      - ./certs/wazuh-indexer/admin.pem:/usr/share/wazuh-indexer/certs/admin.pem:ro
+      - ./certs/wazuh-indexer/admin-key.pem:/usr/share/wazuh-indexer/certs/admin-key.pem:ro
+    healthcheck:
+      # /dev/tcp es un builtin de bash, no requiere curl ni nc
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/9200' 2>/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
+
+  # ============================================================
+  # FASE 2: Wazuh Manager
+  # Arranca cuando el indexer está healthy
+  # ============================================================
+  wazuh-manager:
+    image: wazuh/wazuh-manager:4.7.5
+    container_name: wazuh-manager
+    restart: unless-stopped
+    hostname: wazuh-manager
+    depends_on:
+      wazuh-indexer:
+        condition: service_healthy
+    networks:
+      lab-net:
+        ipv4_address: 172.20.0.20
+    ## Registro de agentes, enrollment de agentes y API REST respectivamente
+    ports:
+      - "127.0.0.1:1514:1514"
+      - "127.0.0.1:1515:1515"
+      - "127.0.0.1:55000:55000"
+    environment:
+      - INDEXER_URL=https://wazuh-indexer:9200
+      - INDEXER_USERNAME=admin
+      - INDEXER_PASSWORD=${INDEXER_PASSWORD}
+      - FILEBEAT_SSL_VERIFICATION_MODE=full
+      - SSL_CERTIFICATE_AUTHORITIES=/etc/ssl/root-ca.pem
+      - SSL_CERTIFICATE=/etc/ssl/filebeat.pem
+      - SSL_KEY=/etc/ssl/filebeat.key
+      - API_USERNAME=wazuh-wui
+      - API_PASSWORD=${API_PASSWORD}
+    volumes:
+      - wazuh-manager-etc:/var/ossec/etc
+      - wazuh-manager-var:/var/ossec/data
+      - wazuh-manager-logs:/var/ossec/logs
+      - lab-logs:/wazuh-logs/minio:ro
+      # reglas custom del laboratorio, montadas directamente para que un cambio en el fichero del host se refleje sin rebuild
+      - ./lab-config/wazuh/local_rules.xml:/wazuh-config-mount/etc/rules/local_rules.xml:ro
+      - ./certs/wazuh-manager/filebeat.pem:/etc/ssl/filebeat.pem:ro
+      - ./certs/wazuh-manager/filebeat.key:/etc/ssl/filebeat.key:ro
+      - ./certs/wazuh-manager/root-ca.pem:/etc/ssl/root-ca.pem:ro
+    healthcheck:
+      # Puertos 1514 (registro agentes) y 55000 (API) escuchando
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/1514 && </dev/tcp/localhost/55000' 2>/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  # ============================================================
+  # FASE 3: Wazuh Dashboard
+  # Arranca cuando el manager está healthy
+  # ============================================================
+  wazuh-dashboard:
+    image: wazuh/wazuh-dashboard:4.7.5
+    container_name: wazuh-dashboard
+    restart: unless-stopped
+    hostname: wazuh-dashboard
+    depends_on:
+      wazuh-manager:
+        condition: service_healthy
+    networks:
+      lab-net:
+        ipv4_address: 172.20.0.22
+    ports:
+      - "443:5601"
+    environment:
+      - INDEXER_USERNAME=admin
+      - INDEXER_PASSWORD=${INDEXER_PASSWORD}
+      - WAZUH_API_URL=https://wazuh-manager
+      - DASHBOARD_USERNAME=kibanaserver
+      - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD}
+    volumes:
+      - ./certs/wazuh-dashboard/dashboard.pem:/usr/share/wazuh-dashboard/certs/dashboard.pem:ro
+      - ./certs/wazuh-dashboard/dashboard-key.pem:/usr/share/wazuh-dashboard/certs/dashboard-key.pem:ro
+      - ./certs/wazuh-dashboard/root-ca.pem:/usr/share/wazuh-dashboard/certs/root-ca.pem:ro
+      - ./lab-config/wazuh/opensearch_dashboards.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml:ro
+
+  # ============================================================
+  # FASE 3: Fileserver — víctima principal
+  # Arranca cuando el manager está healthy
+  # ============================================================
+  fileserver:
+    build:
+      context: .
+      dockerfile: dockerfiles/fileserver.Dockerfile
+    container_name: fileserver
+    privileged: true
+    restart: unless-stopped
+    hostname: fileserver
+    depends_on:
+      wazuh-manager:
+        condition: service_healthy
+    networks:
+      lab-net:
+        ipv4_address: 172.20.0.10
+    cap_add:
+      - AUDIT_CONTROL
+      - AUDIT_READ
+    volumes:
+      - labprueba-fs:/opt/labprueba
+      - ./lab-config/ssh-keys:/etc/ssh-keys:ro
+      - ./lab-config/wazuh/ossec_fileserver.conf:/var/ossec/etc/ossec.conf:ro
+    environment:
+      - WAZUH_MANAGER=wazuh-manager
+      - WAZUH_AGENT_NAME=fileserver
+      - WAZUH_AGENT_GROUP=lab-victims
+
+  # ============================================================
+  # FASE 3: Workstation — víctima secundaria
+  # ============================================================
+  workstation:
+    build:
+      context: .
+      dockerfile: dockerfiles/workstation.Dockerfile
+    container_name: workstation
+    privileged: true
+    restart: unless-stopped
+    hostname: workstation
+    depends_on:
+      wazuh-manager:
+        condition: service_healthy
+    networks:
+      lab-net:
+        ipv4_address: 172.20.0.11
+    cap_add:
+      - AUDIT_CONTROL
+      - AUDIT_READ
+    volumes:
+      - labprueba-ws:/home/lab/labprueba
+      - ./lab-config/ssh-keys:/etc/ssh-keys:ro
+    environment:
+      - WAZUH_MANAGER=wazuh-manager
+      - WAZUH_AGENT_NAME=workstation
+      - WAZUH_AGENT_GROUP=lab-victims
+
+  # ============================================================
+  # FASE 3: Attacker — Kali
+  # ============================================================
+  attacker:
+    build:
+      context: .
+      dockerfile: dockerfiles/attacker.Dockerfile
+    container_name: attacker
+    privileged: true
+    restart: unless-stopped
+    hostname: attacker
+    depends_on:
+      wazuh-manager:
+        condition: service_healthy
+    networks:
+      lab-net:
+        ipv4_address: 172.20.0.30
+    volumes:
+      - ./simulators:/lab/simulators:ro
+      - ./lab-config/ssh-keys:/etc/ssh-keys:ro
+      - lab-logs:/var/log/lab
+    environment:
+      - WAZUH_MANAGER=wazuh-manager
+      - WAZUH_AGENT_NAME=attacker
+      - WAZUH_AGENT_GROUP=lab-attacker
+
+  # ============================================================
+  # FASE 3: Restic SFTP (destino de copias estrategia B)
+  # ============================================================
+  restic-sftp:
+    build:
+      context: .
+      dockerfile: dockerfiles/restic-sftp.Dockerfile
+    container_name: restic-sftp
+    privileged: true
+    restart: unless-stopped
+    hostname: restic-sftp
+    depends_on:
+      wazuh-manager:
+        condition: service_healthy
+    networks:
+      lab-net:
+        ipv4_address: 172.20.0.41
+    cap_add:
+      - AUDIT_CONTROL
+      - AUDIT_READ
+    volumes:
+      - restic-sftp-data:/srv/backups
+      - ./lab-config/ssh-keys:/etc/ssh-keys:ro
+    environment:
+      - WAZUH_MANAGER=wazuh-manager
+      - WAZUH_AGENT_NAME=restic-sftp
+      - WAZUH_AGENT_GROUP=lab-backup
+
+  # ============================================================
+  # FASE 4a (paralelo): MinIO
+  # No depende de Wazuh
+  # ============================================================
+  minio:
+    image: minio/minio:RELEASE.2024-12-18T13-15-44Z
+    container_name: minio
+    restart: unless-stopped
+    hostname: minio
+    networks:
+      lab-net:
+        ipv4_address: 172.20.0.40
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_AUDIT_WEBHOOK_ENABLE_local=on
+      - MINIO_AUDIT_WEBHOOK_ENDPOINT_local=file:///var/log/minio/audit.json
+    command: server --console-address ":9001" /data
+    volumes:
+      - minio-data:/data
+      - lab-logs:/var/log/minio
+    healthcheck:
+      test: ["CMD-SHELL", "mc ready local || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  # ============================================================
+  # FASE 4b: MinIO Init (one-shot)
+  # Arranca cuando MinIO está healthy, crea buckets y usuarios
+  # ============================================================
+  minio-init:
+    image: minio/mc:RELEASE.2024-11-21T17-21-54Z
+    container_name: minio-init
+    networks:
+      - lab-net
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - RESTIC_C_USER=${RESTIC_C_USER}
+      - RESTIC_C_SECRET=${RESTIC_C_SECRET}
+      - RESTIC_B_USER=${RESTIC_B_USER}
+      - RESTIC_B_SECRET=${RESTIC_B_SECRET}
+    entrypoint: ["/bin/sh", "/init-minio.sh"]
+    volumes:
+      - ./scripts/init_minio.sh:/init-minio.sh:ro
+      - ./lab-config/minio:/policies:ro
+    restart: "no"

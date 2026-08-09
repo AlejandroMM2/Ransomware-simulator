@@ -1,0 +1,15 @@
+\babel@toc {spanish}{}\relax 
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {5.1}{\ignorespaces Tasa de recuperación exitosa por estrategia de \textit {backup}. \textit {Figure 5.1. Successful recovery rate per backup strategy. Strategy C achieves 100\,\% in all scenarios including active backup destruction.}\relax }}{40}{figure.caption.23}%
+\contentsline {figure}{\numberline {5.2}{\ignorespaces Tiempo de detección ($\ensuremath {T_{\text {detect}}}$) mediano por celda experimental. Barras de error = IQR [P25--P75]. La línea roja discontinua indica el umbral de 60\,s de H2. \textit {Figure 5.2. Median detection time per experimental cell. All cells are well below the 60-second threshold established in H2.}\relax }}{42}{figure.caption.25}%
+\contentsline {figure}{\numberline {5.3}{\ignorespaces Distribución del \gls {mttr} por escenario y estrategia de backup. El escenario~E2 no muestra datos para B porque todos los casos resultaron en recuperación imposible. \textit {Figure 5.3. MTTR distribution by scenario and backup strategy. Scenario E2 shows no data for strategy B as all cases were impossible to recover.}\relax }}{44}{figure.caption.27}%
+\contentsline {figure}{\numberline {5.4}{\ignorespaces Variabilidad del \gls {mttr} por repetición. Cada punto representa una ejecución experimental. Las líneas discontinuas indican la mediana. \textit {Figure 5.4. MTTR variability across repetitions per scenario and strategy. Dashed lines indicate the median for each strategy.}\relax }}{45}{figure.caption.28}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }

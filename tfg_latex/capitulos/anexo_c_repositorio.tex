@@ -1,0 +1,254 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+\chapter{Estructura del repositorio}
+\label{anx:repositorio}
+
+\section{Organización de ficheros}
+
+El repositorio del proyecto se organiza de la siguiente manera:
+
+\begin{lstlisting}[language=bash,
+  caption={Árbol de directorios del repositorio del proyecto.},
+  label={lst:repo}]
+pfg_contenedores/
+|-- README.md                     <- instrucciones de uso
+|-- docker-compose.yml            <- definicion del stack completo
+|-- .env.example                  <- plantilla de variables de entorno
+|-- .gitignore
+|-- generate_certs.sh             <- generacion de PKI con OpenSSL
+|-- experiment_runner.py          <- orquestador de las 120 ejecuciones
+|-- 00_ejecutar_todo.sh           <- script maestro de analisis
+|-- 01_analisis_estadistico.py    <- Mann-Whitney U, Cliff delta, Fisher
+|-- 02_figuras.py                 <- generacion de figuras PNG
+|-- 03_tabla_latex.py             <- tabla LaTeX de resultados
+|
+|-- dockerfiles/
+|   |-- fileserver.Dockerfile
+|   |-- workstation.Dockerfile
+|   |-- attacker.Dockerfile
+|   `-- restic-sftp.Dockerfile
+|
+|-- lab-config/
+|   |-- minio/
+|   |   |-- restic-b-policy.json          <- politica IAM con permisos de borrado
+|   |   |-- restic-c-policy.json          <- politica IAM sin permisos de borrado
+|   |-- samba/
+|   |   |-- smb.conf                      <- Conf Samba
+|   |-- ssh-keys/                         <- claves SSH (privadas en .gitignore)
+|   |   |-- lab_authorized_keys
+|   |   |-- lab_runner_key
+|   |   |-- lab_runner_key.pub
+|   |   |-- restic_b_authorized_keys
+|   |   |-- restic_b_key
+|   |   |-- restic_b_key.pub
+|   `--  wazuh/
+|   |   |-- audit-rules-backup.rules
+|   |   |-- audit-rules-victim.rules
+|   |   |-- lab_ips                      <- IPs agentes
+|   |   |-- local_rules.xml              <- 13 reglas custom del laboratorio
+|   |   |-- local_rules.xml_auditd_old   <- reglas trabajo futuro auditd distinto kernel
+|   |   |-- opensearch_dashboards.yml
+|   |   |-- ossec_fileserver.conf        <- config agente fileserver
+|   |   |-- ossec_restic-sftp.conf       <- config agente restic
+|   |   `--  ossec_workstation.conf       <- config agente workstation
+|
+|-- scripts/
+|   |-- reset_lab.sh              <- reset entre ejecuciones
+|   |-- post_start.sh             <- post-arranque del stack
+|   |-- verify_lab.sh             <- verificacion del estado del lab
+|   |-- backup_volumes.sh         <- backup de volumenes Docker
+|   |-- init_minio.sh             <- inicializacion de MinIO
+|   |-- generate_test_files.sh    <- generacion de ficheros sinteticos
+|   |-- fileserver-entrypoint.sh
+|   |-- workstation-entrypoint.sh
+|   |-- attacker-entrypoint.sh
+|   |-- restic-sftp-entrypoint.sh
+|   `-- playbooks/
+|       |-- playbook_a.sh         <- estrategia A: sin backup
+|       |-- playbook_b.sh         <- estrategia B: Restic+SFTP
+|       `-- playbook_c.sh         <- estrategia C: MinIO Object Lock
+|
+|-- simulators/
+|   |-- encryptor.py              <- Script encriptador dentro de rutas permitidas
+|   `-- scenarios/
+|       |-- e1_local.sh           <- T1486: cifrado AES-256-GCM
+|       |-- e2_destroy.sh         <- T1490: destruccion de copias
+|       |-- e3_lateral.sh         <- T1021.004: movimiento lateral SSH
+|       `-- e4_exfil.sh           <- T1041: exfiltracion por SSH
+|
+|-- results/
+|   |-- raw_20260724_174113.csv   <- datos del experimento completo
+|   |-- resumen_celdas.csv        <- estadisticos por celda
+|   |-- estadisticas.txt          <- analisis estadistico completo
+|   |-- tabla_resultados.tex      <- tabla LaTeX para la memoria
+|   |-- figura1_mttr_boxplot.png
+|   |-- figura2_tasa_recuperacion.png
+|   |-- figura3_tdetect.png
+|   `-- figura4_mttr_scatter.png
+|
+`-- tfg_latex/                              <- memoria del PFG en LaTeX
+    |-- acronimos.tex                       <- definicion de acronimos y glosario
+    |-- bibliografia.bib                    <- referencias bibliograficas (BibTeX)
+    |-- capitulos/
+    |   |-- 01_introduccion.tex
+    |   |-- 02_estado_arte.tex
+    |   |-- 03_arquitectura.tex
+    |   |-- 04_disenyo_experimental.tex
+    |   |-- 05_resultados.tex
+    |   |-- 06_discusion.tex
+    |   |-- 07_conclusiones.tex
+    |   |-- abstract.tex
+    |   |-- agradecimientos.tex
+    |   |-- anexo_a_reglas.tex
+    |   |-- anexo_b_art.tex
+    |   |-- anexo_c_repositorio.tex          <- este mismo anexo
+    |   |-- referencias.tex
+    |   `-- resumen.tex
+    |-- imagenes/
+    |   |-- figura1_mttr_boxplot.png
+    |   |-- figura2_tasa_recuperacion.png
+    |   |-- figura3_tdetect.png
+    |   |-- figura4_mttr_scatter.png
+    |   `-- rosadelosvientos.png
+    |-- main.tex                            <- documento raiz (documentclass book)
+    |-- Makefile                            <- automatizacion de la compilacion
+    |-- portada.tex
+    |-- README.md
+    `-- referencias.bib
+\end{lstlisting}
+
+Cada uno de los directorios de primer nivel agrupa una responsabilidad
+diferenciada del proyecto, siguiendo el principio de separar claramente el
+código de infraestructura, el código de experimentación y la documentación
+final. El directorio \texttt{dockerfiles/} contiene las definiciones de imagen
+de los cuatro contenedores que requieren personalización más allá de una imagen
+base oficial; los contenedores restantes (\texttt{wazuh-indexer},
+\texttt{wazuh-manager}, \texttt{wazuh-dashboard} y \texttt{minio}) utilizan
+directamente las imágenes oficiales publicadas por sus respectivos proyectos, sin
+necesidad de un \texttt{Dockerfile} propio.
+
+El directorio \texttt{lab-config/} centraliza toda la configuración estática
+que los contenedores montan como volúmenes de solo lectura en tiempo de
+arranque: las políticas \gls{iam} de MinIO que materializan la diferencia de
+permisos entre las estrategias~B y~C descrita en la
+sección~\ref{sec:almacenamiento-backups} del capítulo~\ref{C:arquitectura}, las
+claves \gls{ssh} generadas específicamente para el laboratorio (excluidas del
+control de versiones mediante \texttt{.gitignore} salvo las partes públicas), y
+la configuración completa de Wazuh, incluyendo el fichero
+\texttt{local\_rules.xml} reproducido íntegramente en el anexo~A.
+
+Los directorios \texttt{scripts/} y \texttt{simulators/} separan
+respectivamente la infraestructura de orquestación del experimento (reinicio del
+laboratorio, verificación de estado, \emph{playbooks} de recuperación por
+estrategia) de la lógica específica de cada escenario de ataque. Esta separación
+permite que los cuatro escenarios descritos en la
+sección~\ref{sec:variables-escenario} del capítulo~\ref{C:disenyo} puedan
+extenderse o sustituirse sin modificar el orquestador central
+\texttt{experiment\_runner.py}, en línea con el criterio de extensibilidad
+modular reivindicado como contribución en el
+capítulo~\ref{C:conclusiones}.
+
+El directorio \texttt{results/} no se distribuye con el repositorio público
+en su versión completa por motivos de tamaño, pero su estructura --- el CSV
+crudo con las 120~filas del experimento, el resumen por celda y las cuatro
+figuras generadas --- es la que se referencia directamente desde el
+capítulo~\ref{C:resultados} de esta memoria. Finalmente, el directorio
+\texttt{tfg\_latex/} contiene la memoria que el lector tiene actualmente
+entre manos, organizada como un documento LaTeX modular mediante el paquete
+\texttt{subfiles}: cada capítulo y anexo es un fichero independiente que puede
+compilarse de forma aislada para revisión, además de integrarse en el documento
+completo a través de \texttt{main.tex}.
+
+\section{Reproducibilidad}
+
+Para reproducir el experimento completo en un nuevo sistema con Docker
+instalado se siguen estos pasos:
+
+\begin{lstlisting}[language=bash,
+  caption={Instrucciones completas de reproducción del experimento.},
+  label={lst:reproduccion}]
+# 1. Clonar el repositorio
+git clone https://github.com/AlejandroMM2/Ransomware-simulator
+cd pfg_contenedores
+
+# 2. Requisito previo del kernel para OpenSearch
+sudo sysctl -w vm.max_map_count=262144
+echo "vm.max_map_count=262144" | sudo tee -a /etc/sysctl.conf
+
+# 3. Copiar y editar el fichero de variables de entorno
+cp .env.example .env
+nano .env          # ajustar contrasenas si se desea
+
+# 4. Generar certificados TLS para Wazuh
+chmod +x generate_certs.sh
+./generate_certs.sh
+
+# 5. Construir las imagenes (primera vez: 15-20 min)
+docker compose build
+
+# 6. Arrancar el stack en dos etapas:
+
+# Etapa A: arrancar el indexer y ejecutar securityadmin
+docker compose up -d wazuh-indexer
+
+# Esperar a que este sano
+while [ "$(docker inspect -f '{{.State.Health.Status}}' \
+  wazuh-indexer 2>/dev/null)" != "healthy" ]; do
+    sleep 5; echo -n "."
+done; echo " healthy"
+
+# Inicializar plugin de seguridad de OpenSearch
+docker exec wazuh-indexer bash -c '
+  export OPENSEARCH_JAVA_HOME=/usr/share/wazuh-indexer/jdk
+  bash /usr/share/wazuh-indexer/plugins/opensearch-security/tools/\
+securityadmin.sh \
+    -cd /usr/share/wazuh-indexer/opensearch-security/ \
+    -nhnv \
+    -cacert /usr/share/wazuh-indexer/certs/root-ca.pem \
+    -cert /usr/share/wazuh-indexer/certs/admin.pem \
+    -key /usr/share/wazuh-indexer/certs/admin-key.pem \
+    -h localhost -p 9200 -icl
+'
+
+# Etapa B: arrancar el resto del stack
+docker compose up -d
+
+# 7. Verificar que todo esta operativo (esperar ~3 min)
+bash scripts/post_start.sh
+bash scripts/verify_lab.sh
+
+# 8. Lanzar el experimento completo (~4-5 horas)
+python3 experiment_runner.py
+
+# 9. Generar analisis estadistico y figuras
+bash 00_ejecutar_todo.sh
+\end{lstlisting}
+
+\section{Requisitos del sistema}
+
+Para ejecutar el laboratorio se necesitan los siguientes recursos mínimos:
+
+\begin{itemize}
+  \item \textbf{CPU}: procesador x86\_64 de cuatro o más núcleos.
+  \item \textbf{RAM}: 16\,GB (el stack en reposo consume $\approx$6\,GB).
+  \item \textbf{Disco}: 30\,GB libres para imágenes Docker y volúmenes.
+  \item \textbf{SO}: Linux con kernel $\geq$ 5.15 (no se requiere CachyOS).
+    En distribuciones con kernel estándar el laboratorio puede
+    complementarse con reglas de \texttt{auditd}.
+  \item \textbf{Docker}: Engine~24.x o superior, Compose~v2.x.
+  \item \textbf{Python}: 3.10 o superior con las bibliotecas
+    \texttt{scipy}, \texttt{numpy}, \texttt{pandas} y
+    \texttt{matplotlib} para el análisis estadístico.
+\end{itemize}
+
+\section{Licencia}
+
+El código del laboratorio se publica bajo la licencia MIT, que permite
+su uso, modificación y distribución con la única condición de mantener
+el aviso de copyright original. La memoria del PFG se publica bajo la
+licencia Creative Commons BY-NC-SA~4.0, que permite compartirla y
+adaptarla con atribución, sin uso comercial y manteniendo la misma
+licencia en los trabajos derivados.
+
+\end{document}

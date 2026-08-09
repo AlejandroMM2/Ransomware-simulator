@@ -1,0 +1,421 @@
+%% ============================================================
+%%  Metadatos del PFG — editar solo esta sección
+%% ============================================================
+\newcommand{\PFGtitulo}{Evaluación de estrategias de backup ante ransomware mediante laboratorio en contenedores con SIEM Wazuh}
+\newcommand{\PFGtitulocorto}{Evaluación impacto ransomware}
+\newcommand{\PFGautor}{Alejandro Martinez Martinez}
+\newcommand{\PFGdirector}{Antonio Robles}
+%\newcommand{\PFGcodirector}{Codirector/a del PFG}
+\newcommand{\PFGgrado}{Grado en Ingeniería Informática}
+\newcommand{\PFGmodalidad}{Específica}
+\newcommand{\PFGcursoacademico}{2025/2026}
+\newcommand{\PFGconvocatoria}{Septiembre}
+\newcommand{\PFGfechadefensa}{2 de octubre de 2026}
+
+%% ============================================================
+%%  Clase del documento
+%% ============================================================
+\documentclass[12pt,twoside]{book}
+
+%% ── Codificación y lengua ────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\spanishplainpercent %% El documento ya inserta \,\% manualmente; evita conflicto de glue con babel-spanish
+
+%% ── Márgenes ─────────────────────────────────────────────────
+\usepackage[papersize={210mm,297mm},
+            tmargin=25mm, bmargin=25mm,
+            lmargin=20mm, rmargin=20mm]{geometry}
+
+%% ── Párrafos ─────────────────────────────────────────────────
+\setlength\parindent{0cm}
+\setlength\parskip{1em}
+
+%% ── Colores (tabla ANTES de xcolor para que funcione rowcolors) ──
+\usepackage[dvipsnames,table]{xcolor}
+\definecolor{links}         {rgb}{0.35, 0.4, 0.35}
+\definecolor{urls}          {rgb}{0,0,1}
+\definecolor{cites}         {rgb}{0.8,0,0}
+\definecolor{gray20}        {gray}{0.20}
+\definecolor{tabla-cabecera}{RGB}{31,56,100}
+\definecolor{tabla-par}     {RGB}{235,240,250}
+\definecolor{codegreen}     {rgb}{0,0.6,0}
+\definecolor{codegray}      {rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}    {rgb}{0.58,0,0.82}
+\definecolor{backcolour}    {rgb}{0.95,0.95,0.92}
+
+%% ── Gráficos ─────────────────────────────────────────────────
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\graphicspath{{imagenes/}}
+
+%% ── Hipervínculos ────────────────────────────────────────────
+\usepackage[hyphens]{url}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks = true,
+    linkcolor  = links,
+    urlcolor   = urls,
+    citecolor  = cites,
+    pdftitle   = {\PFGtitulo},
+    pdfauthor  = {\PFGautor}
+}
+
+%% ── Tablas ───────────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{multicol}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{siunitx}
+\renewcommand{\arraystretch}{1.5}
+
+%% ── Matemáticas ──────────────────────────────────────────────
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+%% ── Resaltado ────────────────────────────────────────────────
+\usepackage{soul}
+
+%% ── Código fuente ────────────────────────────────────────────
+\usepackage{listings}
+\lstloadlanguages{C,C++,Python,Java,PHP,HTML,bash}
+\lstdefinestyle{mystyle}{
+    commentstyle    = \color{codegreen},
+    keywordstyle    = \color{blue},
+    numberstyle     = \tiny\color{codegray},
+    stringstyle     = \color{codepurple},
+    backgroundcolor = \color{backcolour},
+    basicstyle      = \footnotesize\ttfamily\color{black},
+    breaklines      = true,
+    captionpos      = b,
+    frame           = single,
+    keepspaces      = true,
+    numbers         = left,
+    numbersep       = 10pt,
+    showstringspaces= false,
+    stepnumber      = 1,
+    tabsize         = 2,
+    xleftmargin     = 1.5cm,
+}
+\lstset{style=mystyle}
+\lstset{
+    extendedchars=true,
+    inputencoding=utf8,
+    literate=
+        {á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+        {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+        {ñ}{{\~n}}1 {Ñ}{{\~N}}1 {ü}{{\"u}}1 {Ü}{{\"U}}1
+        {¿}{{¿}}1 {¡}{{¡}}1
+}
+\lstdefinestyle{bash}{
+    language        = bash,
+    commentstyle    = \color{codegreen},
+    keywordstyle    = \color{blue},
+    basicstyle      = \footnotesize\ttfamily\color{black},
+    backgroundcolor = \color{backcolour},
+    breaklines      = true,
+    frame           = single,
+    numbers         = left,
+    numbersep       = 10pt,
+    xleftmargin     = 1.5cm,
+    captionpos      = b,
+}
+
+%% ── Encabezados (según reglamento UNED) ─────────────────────
+%% Pares:   nº pág (izq) | título PFG (der)
+%% Impares: título cap (izq) | nº pág (der)
+\usepackage{fancyhdr}
+\fancyhf{}
+\lhead[\thepage]{\leftmark}
+\rhead[\PFGtitulocorto]{\thepage}
+\setlength{\headheight}{16pt}
+\pagestyle{empty}
+%% Primera página de capítulo sin encabezado
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \fancyfoot[C]{\small\thepage}
+  \renewcommand{\headrulewidth}{0pt}
+}
+
+%% ── Formato de capítulos ─────────────────────────────────────
+\usepackage{titlesec}
+\titleformat{\chapter}[display]
+    {\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter}{20pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{-50pt}{40pt}
+\setcounter{secnumdepth}{4}
+\titleformat{\paragraph}
+    {\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titlespacing*{\paragraph}
+    {0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+
+%% ── Bibliografía en índice ───────────────────────────────────
+\usepackage[nottoc,notlot,notlof]{tocbibind}
+
+%% ── Glosario y acrónimos ─────────────────────────────────────
+\usepackage[acronym,toc]{glossaries}
+\makeglossaries
+\input{acronimos}
+
+%% ── Anexos ───────────────────────────────────────────────────
+\usepackage{appendix}
+\renewcommand{\appendixname}{Anexo}
+\renewcommand{\appendixtocname}{Anexos}
+\renewcommand{\appendixpagename}{Anexos}
+
+%% ── Subfiles ─────────────────────────────────────────────────
+\usepackage{subfiles}
+
+%% ── Enumeraciones ────────────────────────────────────────────
+\usepackage{enumitem}
+
+%% ── Floats y posicionamiento ─────────────────────────────────
+\usepackage{placeins}
+\usepackage{needspace}
+
+%% ── Nombres en español ───────────────────────────────────────
+\renewcommand{\spanishtablename}{Tabla}
+\renewcommand{\spanishlisttablename}{Índice de tablas}
+\renewcommand{\spanishcontentsname}{Índice}
+\renewcommand{\spanishfigurename}{Figura}
+\renewcommand{\spanishlistfigurename}{Índice de figuras}
+
+%% ── Tipo de columna centrada con ancho fijo ──────────────────
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+%% ── Comandos auxiliares generales ────────────────────────────
+\newcommand\paginablanco{%
+    \null\thispagestyle{empty}\newpage}
+\newcommand\paginablancosin{%
+    \paginablanco\addtocounter{page}{-1}}
+\newcommand{\pfg}{Proyecto Fin de Grado }
+\newcommand\ddfrac[2]{\frac{\displaystyle #1}{\displaystyle #2}}
+
+%% ── Comandos del PFG ─────────────────────────────────────────
+\newcommand{\restic}{Restic}
+\newcommand{\wazuh}{Wazuh}
+\newcommand{\tdetect}{\ensuremath{T_{\text{detect}}}}
+\newcommand{\tlaunch}{\ensuremath{T_{\text{launch}}}}
+\newcommand{\mttr}{\gls{mttr}}
+\newcommand{\stratA}{Estrategia~A}
+\newcommand{\stratB}{Estrategia~B}
+\newcommand{\stratC}{Estrategia~C}
+
+%% Compatibilidad \textcite (bibliografía numérica IEEEtran vía bibtex)
+\newcommand{\textcite}[1]{\cite{#1}}
+
+%% ============================================================
+\begin{document}
+%% ============================================================
+
+\pagenumbering{gobble}
+
+%% ── PORTADA (modelo B.9) ─────────────────────────────────────
+\begin{titlepage}
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=4cm]{rosadelosvientos.png}
+\end{figure}
+\begin{center}
+    {\scshape\Large Universidad Nacional de Educación a Distancia \par}
+    {\scshape\Large Escuela Técnica Superior de Ingeniería Informática \par}
+    \vfill
+    \large{Proyecto de Fin de Grado en \PFGgrado}\\
+    \vfill
+    {\bfseries\Huge \textcolor{black}{\PFGtitulo} \par}
+    \vfill
+\end{center}
+\vspace*{2cm}
+{\huge \textcolor{black}{\PFGautor} \par}
+{\huge \textcolor{black}{Dirigido por: \PFGdirector} \par}
+\ifdefined\PFGcodirector
+    {\huge \textcolor{black}{Codirigido por: \PFGcodirector} \par}
+\fi
+{\huge \textcolor{black}{Curso \PFGcursoacademico, convocatoria \PFGconvocatoria} \par}
+\end{titlepage}
+
+%% ── PRIMERA HOJA (modelo B.10) ───────────────────────────────
+\chapter*{}
+\thispagestyle{empty}
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=4cm]{rosadelosvientos.png}
+\end{figure}
+\begin{center}
+    {\bfseries\Huge \textcolor{black}{\PFGtitulo} \par}
+    \vfill
+    {\bfseries\Large \textcolor{black}{Proyecto de Fin de Grado en \PFGgrado} \par}
+    {\bfseries\Large \textcolor{black}{de modalidad \PFGmodalidad} \par}
+\end{center}
+\vspace*{4cm}
+{\Large Realizado por: \PFGautor \par}
+{\Large Dirigido por: \PFGdirector \par}
+\ifdefined\PFGcodirector
+    {\Large Codirigido por: \PFGcodirector \par}
+\fi
+\vfill
+{\Large Fecha de lectura y defensa: \PFGfechadefensa \par}
+\newpage
+
+%% ── PRELIMINARES ─────────────────────────────────────────────
+\pagenumbering{Roman}
+
+%% Agradecimientos
+\chapter*{Agradecimientos}
+\thispagestyle{empty}
+\addcontentsline{toc}{chapter}{Agradecimientos}
+
+\begin{flushright}
+\textit{A mi familia, por el apoyo incondicional durante estos años.}
+\end{flushright}
+
+Este trabajo no habría sido posible sin la orientación de mi director, cuya
+disponibilidad y criterio técnico han sido fundamentales en cada etapa del proyecto.
+Agradezco también a la comunidad de software libre que desarrolla y mantiene las
+herramientas sobre las que se construye este laboratorio: Wazuh, MinIO, Restic y
+Docker, entre otras.
+
+\cleardoublepage
+
+%% Resumen
+\chapter*{Resumen}
+\addcontentsline{toc}{chapter}{Resumen}
+
+El ransomware se ha convertido en una de las amenazas más graves para organizaciones
+de todo tipo. Los ataques modernos no se limitan a cifrar los datos de la víctima:
+incluyen sistemáticamente la destrucción de las copias de seguridad antes del
+cifrado, eliminando la principal vía de recuperación. Frente a este escenario, la
+industria propone el almacenamiento inmutable como mecanismo de protección, pero la
+literatura académica carece de comparativas experimentales que cuantifiquen su
+impacto real en el tiempo de recuperación.
+
+Este Trabajo de Fin de Grado presenta el diseño, implementación y evaluación de un
+laboratorio de simulación de ransomware basado íntegramente en contenedores Docker.
+El entorno reproduce una infraestructura empresarial mínima compuesta por un
+servidor de ficheros, una \textit{workstation}, un servidor de \textit{backups}
+SFTP, un sistema de almacenamiento de objetos con Object Lock (MinIO) y un SIEM
+completo (Wazuh~4.7.5 con OpenSearch).
+
+El diseño experimental sigue un esquema factorial de cuatro escenarios de ataque
+por tres estrategias de recuperación y diez repeticiones, totalizando
+120~ejecuciones completamente automatizadas. Los escenarios cubren las tácticas
+más relevantes de la matriz MITRE ATT\&CK: cifrado masivo de ficheros (T1486),
+destrucción activa de copias de seguridad (T1490), movimiento lateral por SSH
+(T1021.004) y exfiltración de datos (T1041).
+
+Los resultados muestran que la hipótesis de reducción del MTTR en un 30\,\% no se
+confirma estadísticamente: cuando el repositorio está disponible, ambas estrategias
+restauran con velocidad equivalente. Sin embargo, el escenario de destrucción activa
+revela la diferencia fundamental: la estrategia SFTP falla en el 100\,\% de los
+casos mientras que Object Lock bloquea todos los intentos de borrado y mantiene el
+100\,\% de éxito (Fisher $p < 0.001$). Los tiempos de detección mediante Wazuh
+oscilan entre 5.7 y 41.9~segundos, frente a los más de 200~días reportados para
+la detección manual. El laboratorio se publica como software libre.
+
+\cleardoublepage
+
+%% Abstract
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+Ransomware has become one of the most serious threats to organizations of all types.
+Modern attacks do not merely encrypt the victim's data: they systematically destroy
+backup copies before encryption, eliminating the primary recovery path. In response,
+the industry proposes immutable storage as a protection mechanism, yet the academic
+literature lacks experimental comparisons that quantify its actual impact on recovery
+time.
+
+This Bachelor's Thesis presents the design, implementation and evaluation of a
+ransomware simulation laboratory based entirely on Docker containers. The environment
+replicates a minimal enterprise infrastructure consisting of a file server, a
+workstation, an SFTP backup server, an object storage system with Object Lock
+protection (MinIO), and a complete SIEM stack (Wazuh~4.7.5 with OpenSearch).
+
+The experimental design follows a factorial scheme of four attack scenarios, three
+recovery strategies and ten repetitions, totalling 120~fully automated runs. The
+scenarios cover the most relevant MITRE ATT\&CK tactics: mass file encryption
+(T1486), active destruction of backup copies (T1490), lateral movement via SSH
+(T1021.004), and data exfiltration (T1041).
+
+Results show that the primary hypothesis of a 30\,\% MTTR reduction is not
+statistically confirmed. However, the active destruction scenario reveals the
+fundamental difference: the SFTP strategy fails in 100\,\% of cases while Object
+Lock blocks all deletion attempts and maintains 100\,\% recovery success
+(Fisher $p < 0.001$). Wazuh detection times range from 5.7 to 41.9~seconds,
+contrasting with over 200~days for manual detection. The laboratory is published
+as free software.
+
+\cleardoublepage
+
+%% Palabras clave
+\chapter*{Palabras clave}
+\addcontentsline{toc}{chapter}{Palabras clave}
+
+ransomware, \textit{backup}, recuperación ante desastres, SIEM, Wazuh, Object Lock,
+MinIO, Docker, contenedores, MITRE ATT\&CK, Atomic Red Team, diseño experimental,
+estadística no paramétrica, ciberseguridad.
+
+\cleardoublepage
+
+%% Keywords
+\chapter*{Keywords}
+\addcontentsline{toc}{chapter}{Keywords}
+
+ransomware, backup, disaster recovery, SIEM, Wazuh, Object Lock, MinIO, Docker,
+containers, MITRE ATT\&CK, Atomic Red Team, experimental design, non-parametric
+statistics, cybersecurity.
+
+\cleardoublepage
+
+%% ── Índices ──────────────────────────────────────────────────
+\renewcommand{\listtablename}{Índice de tablas}
+\renewcommand{\listfigurename}{Índice de figuras}
+
+\tableofcontents
+\cleardoublepage
+
+\listoftables
+\addcontentsline{toc}{chapter}{Índice de tablas}
+\cleardoublepage
+
+\listoffigures
+\addcontentsline{toc}{chapter}{Índice de figuras}
+\cleardoublepage
+
+%% Lista de acrónimos
+\printglossary[type=\acronymtype, title={Lista de acrónimos},
+               toctitle={Lista de acrónimos}]
+\cleardoublepage
+
+\paginablanco{}
+
+%% ── CUERPO DEL DOCUMENTO ─────────────────────────────────────
+\pagenumbering{arabic}
+\pagestyle{fancy}
+
+\subfile{capitulos/01_introduccion}
+\subfile{capitulos/02_estado_arte}
+\subfile{capitulos/03_arquitectura}
+\subfile{capitulos/04_disenyo_experimental}
+\subfile{capitulos/05_resultados}
+\subfile{capitulos/06_discusion}
+\subfile{capitulos/07_conclusiones}
+
+%% ── BIBLIOGRAFÍA ─────────────────────────────────────────────
+\newpage
+\bibliography{bibliografia}
+\bibliographystyle{IEEEtran}
+\clearpage
+
+%% ── ANEXOS ───────────────────────────────────────────────────
+\appendix
+\subfile{capitulos/anexo_a_reglas}
+\subfile{capitulos/anexo_b_art}
+\subfile{capitulos/anexo_c_repositorio}
+
+\end{document}

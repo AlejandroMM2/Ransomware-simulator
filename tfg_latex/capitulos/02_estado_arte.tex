@@ -1,0 +1,574 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+\chapter{Estado del arte}
+\label{C:estado_arte}
+
+\section{El ransomware como amenaza empresarial}
+
+\subsection{Origen y evolución histórica}
+
+El ransomware no es una amenaza reciente. Su origen se remonta a 1989,
+cuando el biólogo Joseph Popp distribuyó aproximadamente 20.000 disquetes
+en la conferencia internacional sobre el SIDA de la OMS. El disquete
+contenía un programa que, tras noventa reinicios del sistema, cifraba los
+nombres de los ficheros y exigía el envío de 189 dólares a un apartado de
+correos en Panamá. Este troyano, conocido como AIDS o PC Cyborg, utilizaba
+criptografía simétrica con una clave almacenada en el propio programa, lo
+que permitía recuperar los ficheros sin pagar el rescate.
+
+La barrera que impedía la proliferación masiva del ransomware durante los
+años noventa y la primera década de los dos mil era la ausencia de un
+mecanismo anónimo de pago. Esta barrera desapareció con la aparición de
+Bitcoin en 2009, que proporcionó por primera vez un sistema de pago
+pseudoanónimo, descentralizado e irreversible.
+
+El primer ransomware moderno fue CryptoLocker, aparecido en septiembre
+de 2013. Utilizaba criptografía asimétrica RSA de 2.048~bits para proteger
+la clave de cifrado AES, de modo que sin el servidor de mando y control era
+matemáticamente imposible recuperar los ficheros. Infectó más de 250.000
+sistemas en sus primeros cuatro meses, recaudando entre tres y veintisiete
+millones de dólares.
+
+El salto cualitativo llegó en 2017 con WannaCry, que explotaba la
+vulnerabilidad EternalBlue del protocolo SMB de Windows, filtrada de los
+sistemas de la \gls{nsa} por el grupo Shadow Brokers. En pocas horas
+infectó más de 230.000 sistemas en 150 países, afectando al Servicio
+Nacional de Salud del Reino Unido, a Telefónica y a organismos
+gubernamentales de todo el mundo.
+
+\subsection{El modelo Ransomware-as-a-Service}
+
+La transformación más significativa del ecosistema del ransomware en los
+últimos años no es técnica sino organizativa. El modelo \gls{raas} ha
+convertido el ransomware en una industria estructurada con división del
+trabajo. Los grupos desarrolladores mantienen la infraestructura técnica:
+el cifrador, el servidor de mando y control y el portal de negociación
+con las víctimas. Estos grupos ceden el acceso a afiliados que ejecutan
+los ataques a cambio de una comisión de entre el 20 y el 30\,\% del
+rescate cobrado.
+
+Los grupos más activos en el período 2022-2024 son LockBit, responsable
+de más del 25\,\% de los ataques conocidos; BlackCat (ALPHV), que introdujo
+el uso de Rust como lenguaje del cifrador por su capacidad multiplataforma;
+y Cl0p, que en 2023 explotó una vulnerabilidad en MOVEit para comprometer
+más de 2.700 organizaciones simultáneamente.
+
+\subsection{La doble y triple extorsión}
+
+La doble extorsión, introducida por el grupo Maze en 2019, añade una
+segunda amenaza al cifrado: antes de ejecutarlo, el atacante exfiltra una
+copia de los datos sensibles y amenaza con publicarlos si no se paga el
+rescate. Esto convierte el \textit{backup} en condición necesaria pero no
+suficiente para la recuperación.
+
+Algunos grupos han ido más allá con la triple extorsión, que añade ataques
+de denegación de servicio distribuido (\gls{ddos}) o contacto directo con
+clientes y reguladores para aumentar la presión.
+
+\subsection{Evasión de EDR y ofuscación del cifrador}
+\label{sec:evasion-edr}
+
+Un factor que explica por qué la instrumentación mediante \gls{fim} y
+análisis de comportamiento --- y no únicamente firmas de antivirus
+tradicional --- se ha vuelto imprescindible es la sofisticación creciente
+de las técnicas de evasión empleadas por los cifradores modernos. Familias
+como BlackCat y LockBit~3.0 incorporan de forma habitual la desactivación
+de soluciones de \textit{endpoint detection and response} mediante
+controladores vulnerables firmados digitalmente (técnica conocida como
+\textit{Bring Your Own Vulnerable Driver}, BYOVD), la ofuscación del binario mediante
+empaquetadores personalizados que dificultan el análisis estático, y la
+ejecución en memoria sin escritura a disco (\textit{fileless execution})
+para evitar la detección basada en \textit{hash} de fichero.
+
+Esta evolución es la justificación técnica de fondo para el enfoque
+adoptado en este trabajo: dado que la detección basada en firmas o en la
+reputación del binario es cada vez más evitable, la detección basada en
+\emph{comportamiento observable a nivel de sistema de ficheros} --- el
+principio en el que se apoya el módulo \gls{fim} de Wazuh --- resulta más
+robusta frente a la evasión, puesto que un cifrador que modifica cientos
+de ficheros en segundos produce el mismo patrón de eventos
+independientemente de cómo se oculte el binario que lo ejecuta.
+
+\subsection{Impacto económico y sectorial}
+
+El informe de Veeam Data Protection Trends~2024~\cite{veeam2024} estima
+que el coste medio de un ataque de ransomware supera los cuatro millones
+de dólares, incluyendo el tiempo de inactividad, los costes de recuperación,
+las sanciones regulatorias y el daño reputacional. El tiempo medio de
+interrupción de la actividad es de veinte días.
+
+El sector sanitario merece una mención especial por la gravedad de las
+consecuencias. Durante la pandemia de COVID-19, el grupo Ryuk atacó
+sistemáticamente hospitales en Estados Unidos, Alemania y Francia,
+provocando la cancelación de cirugías urgentes y el desvío de ambulancias.
+
+\subsection{El mercado de ciberseguros como indicador de mercado}
+\label{sec:ciberseguros}
+
+Un indicador indirecto pero revelador de la magnitud del problema es la
+evolución del mercado de ciberseguros. Tras las oleadas masivas de
+ataques de 2020 y 2021, las aseguradoras endurecieron notablemente los
+requisitos de suscripción de pólizas que cubren incidentes de
+ransomware: la autenticación multifactor, la segmentación de red y,
+específicamente, la existencia de copias de seguridad \emph{inmutables o
+desconectadas de la red de producción} pasaron de ser recomendaciones
+opcionales a requisitos contractuales habituales para acceder a
+cobertura o para evitar primas prohibitivas. Este endurecimiento del
+mercado asegurador constituye una validación externa, ajena al ámbito
+puramente técnico, de la tesis central de este trabajo: la industria del
+riesgo ha identificado empíricamente que la disponibilidad de un backup
+resistente a la manipulación por parte del atacante es el factor
+diferencial que determina si un siniestro de ransomware es un incidente
+recuperable o una pérdida catastrófica.
+
+\section{Marcos de madurez de resiliencia frente a ransomware}
+\label{sec:marcos-madurez}
+
+Además de los marcos regulatorios NIS2 y ENS introducidos en el
+capítulo~\ref{C:introduccion}, distintas organizaciones de estandarización han
+publicado marcos de madurez específicos para la resiliencia frente a
+ransomware, que resulta útil revisar para situar correctamente la contribución
+de este trabajo dentro de un marco de referencia más amplio que la comparación
+estrictamente técnica de dos herramientas de \emph{backup}.
+
+El \emph{framework} de ciberseguridad del Instituto Nacional de Estándares y
+Tecnología de Estados Unidos (\gls{nist}), en su versión~2.0, organiza las
+capacidades de una organización en seis funciones: Gobernar, Identificar,
+Proteger, Detectar, Responder y Recuperar. Este trabajo se sitúa
+simultáneamente en dos de estas seis funciones: la función \emph{Proteger},
+mediante el almacenamiento inmutable evaluado en las estrategias~B y~C, y la
+función \emph{Detectar}, mediante la instrumentación \gls{siem} evaluada a
+través de la hipótesis~H2. La función \emph{Recuperar} se evalúa
+indirectamente a través del \gls{mttr}, aunque el laboratorio no cubre los
+aspectos organizativos de esta función (comunicación de crisis, coordinación
+con terceros) que el marco \gls{nist} contempla explícitamente.
+
+El Centro de Seguridad de Internet (\gls{cis}), por su parte, incluye en sus
+\emph{CIS Critical Security Controls} el control~11 (\emph{Data Recovery}),
+que establece explícitamente la necesidad de mantener copias de seguridad
+protegidas frente a modificación o eliminación no autorizada y de probar
+periódicamente su restauración, en línea directa con la recomendación de
+pruebas periódicas de recuperación formulada en la
+sección~\ref{sec:implicaciones-practicas} del capítulo~\ref{C:discusion}.
+
+La convergencia de estos tres marcos --- NIS2, ENS y los controles \gls{cis}
+--- con la evidencia experimental de este \pfg no es casual: los tres han
+sido revisados o actualizados en los últimos años precisamente en respuesta a
+la evolución de las tácticas de destrucción de \emph{backups} descrita en la
+sección siguiente, lo que confirma que el problema abordado experimentalmente
+en este trabajo es reconocido de forma convergente tanto por la industria del
+ciberseguro (sección~\ref{sec:ciberseguros}) como por los marcos normativos y
+de buenas prácticas del sector.
+
+\section{Tácticas de destrucción de backups}
+\label{sec:destruccion-backups}
+
+La destrucción de copias de seguridad como fase preparatoria del ataque
+ha evolucionado desde una táctica ocasional hasta un componente sistemático
+de la mayoría de los kits \gls{raas} desde 2019.
+
+En entornos Windows, las técnicas más frecuentes son la eliminación de las
+instantáneas de volumen (\textit{Shadow Copies}) mediante \texttt{vssadmin
+delete shadows /all /quiet}, la desactivación del servicio de copia de
+seguridad y la eliminación de los puntos de restauración del sistema.
+
+En entornos Linux y almacenamiento en red, las técnicas equivalentes son
+el borrado de repositorios Restic o Duplicati mediante credenciales robadas,
+la eliminación de \textit{snapshots} en ZFS o Btrfs, y la sobrescritura de
+\textit{backups} en \textit{buckets} S3 mediante claves de acceso
+comprometidas.
+
+Un aspecto frecuentemente subestimado es el período de reconocimiento
+previo al cifrado. Según el informe IBM X-Force~2024~\cite{ibm2024},
+el tiempo medio entre la intrusión inicial y el despliegue del cifrador
+supera los 200~días. Durante ese período el atacante identifica y prepara
+la destrucción de las copias de seguridad.
+
+La magnitud del problema queda cuantificada con precisión en el informe
+\emph{The State of Ransomware~2025} de Sophos~\cite{sophos2025}: el 94\,\%
+de las organizaciones que sufrieron un ataque de ransomware en el último año
+declaran que los atacantes intentaron comprometer explícitamente sus copias de
+seguridad durante el ataque, y ese intento tuvo éxito en el 57\,\% de los
+casos, es decir, en más de la mitad de las organizaciones afectadas. El mismo
+informe documenta una caída hasta un mínimo de cuatro años en el uso efectivo de
+\emph{backups} como vía de recuperación (53\,\%, frente al 73\,\% del año
+anterior), un dato que sugiere que la erosión de la confianza en las estrategias
+de \emph{backup} convencionales --- precisamente la motivación central de este
+\pfg --- no es una percepción anecdótica sino una tendencia sectorial medible.
+Estos datos, publicados con posterioridad al diseño del experimento pero antes
+de la redacción de esta memoria, refuerzan \emph{a posteriori} la relevancia
+del escenario~E2 como el más representativo del comportamiento real de los
+atacantes, y no como un caso extremo poco frecuente.
+
+\section{Estrategias de backup y almacenamiento inmutable}
+
+\subsection{La regla 3-2-1 y sus extensiones}
+
+La regla 3-2-1 de \textit{backup}, popularizada por Peter Krogh en
+2005~\cite{krogh2005}, establece que deben mantenerse tres copias de los
+datos, en dos medios distintos, con al menos una copia fuera de las
+instalaciones. Esta regla proporciona protección contra fallos de hardware
+y desastres físicos, pero no contempla el escenario de un atacante con
+acceso administrativo que puede operar sobre todas las copias
+simultáneamente.
+
+La extensión más adoptada es la regla 3-2-1-1-0, que añade: al menos una
+copia debe estar \textit{offline} o en un medio inmutable, y debe
+verificarse que hay cero errores mediante pruebas de restauración periódicas.
+
+\subsection{Restic como herramienta de backup}
+
+Restic~\cite{restic2024} es una herramienta de \textit{backup} de código
+abierto escrita en Go que cifra todos los datos antes de almacenarlos
+usando AES-256-CTR con autenticación Poly1305. Su diseño basado en
+deduplicación a nivel de bloque lo hace eficiente para \textit{backups}
+incrementales. Soporta múltiples \textit{backends} incluyendo \gls{sftp},
+Amazon \gls{s3} y servicios compatibles como MinIO.
+
+Una consideración importante en el uso de Restic con Object Lock es la
+gestión de los ficheros de bloqueo del repositorio. Con Object Lock
+COMPLIANCE activo, Restic no puede eliminar estos \textit{locks} al
+completar una operación. La solución es el uso del flag
+\texttt{--no-lock} en las operaciones de \textit{backup} y restauración.
+
+\subsection{S3 Object Lock y almacenamiento inmutable}
+
+S3 Object Lock~\cite{aws2023} es una característica introducida por Amazon
+en 2018 que permite proteger los objetos almacenados frente a modificaciones
+y eliminaciones durante un período definido. Implementa el modelo WORM
+(\gls{worm}).
+
+Object Lock admite dos modos de retención:
+
+\begin{description}
+  \item[Governance] Protege los objetos frente a la mayoría de los usuarios,
+  pero permite que usuarios con permisos especiales anulen la protección.
+
+  \item[Compliance] Proporciona una protección absoluta e irrevocable: ningún
+  usuario, incluyendo el usuario raíz, puede eliminar un objeto protegido
+  antes de que expire su período de retención. Este modo se utiliza en la
+  estrategia~C de este trabajo.
+\end{description}
+
+MinIO~\cite{minio2024} es una implementación de código abierto de un
+servidor de almacenamiento de objetos compatible con la \gls{api} de
+Amazon \gls{s3}. Implementa la especificación completa de S3 incluyendo
+Object Lock, versionado y políticas \gls{iam}, lo que lo hace adecuado
+para despliegues \textit{on-premise} sin dependencia de servicios cloud.
+
+\subsection{Alternativas al modelo Object Lock}
+
+S3 Object Lock no es la única vía para conseguir almacenamiento
+\gls{worm}, y conviene situarla frente a las alternativas para justificar
+su elección en este trabajo.
+
+\begin{description}
+  \item[Cinta LTO con \textit{write-protect}] La cinta magnética LTO
+  dispone de una pestaña física de protección de escritura que la hace
+  inmune por diseño a cualquier ataque puramente lógico: un ransomware no
+  puede sobrescribir una cinta cuya pestaña esté en posición de solo
+  lectura, con independencia de los privilegios obtenidos en la red. Su
+  inconveniente principal es operativo: requiere intervención humana para
+  rotar y proteger físicamente cada cinta, lo que introduce demoras del
+  orden de horas o días en el \gls{rto} y no encaja con estrategias de
+  recuperación que exigen automatización completa.
+
+  \item[\textit{Snapshots} de ZFS y Btrfs con \texttt{send}/\texttt{receive}]
+  Ambos sistemas de ficheros permiten crear instantáneas de solo lectura y
+  replicarlas hacia un segundo host mediante un flujo unidireccional
+  (\texttt{zfs send \textbar{} zfs receive}). Si el host de destino no
+  expone ningún servicio de administración remota alcanzable desde el
+  origen, un atacante que compromete el fileserver no puede alcanzar ni
+  destruir las instantáneas remotas. La limitación frente a Object Lock es
+  que la protección depende de una correcta segmentación de red: un fallo
+  de configuración que exponga el host de réplicas anula la garantía.
+
+  \item[\textit{Immutable Blob Storage} de Azure y \textit{Bucket Lock} de
+  Google Cloud] Ambos proveedores ofrecen mecanismos funcionalmente
+  equivalentes a S3 Object Lock COMPLIANCE: una vez fijada la política de
+  retención, ni siquiera el propietario de la suscripción puede eliminar
+  el objeto antes de que expire el plazo. La elección de MinIO en este
+  trabajo, frente a estas alternativas cloud, responde a la necesidad de
+  un entorno completamente \textit{on-premise} y reproducible sin
+  dependencia de credenciales de terceros, requisito imprescindible para
+  la reproducibilidad del laboratorio descrita en el anexo~C.
+\end{description}
+
+Las tres alternativas comparten con Object Lock el principio de fondo que
+este trabajo pone a prueba experimentalmente: la inmutabilidad debe ser
+\emph{estructural} (impuesta por el sistema, no revocable por ningún
+credential) y no meramente \emph{procedimental} (basada en permisos que un
+atacante con privilegios suficientes puede modificar).
+
+\section{Sistemas SIEM y detección de ransomware}
+
+\subsection{Arquitectura de un SIEM}
+
+Un \gls{siem} combina la gestión de información de seguridad y la gestión
+de eventos de seguridad en una plataforma unificada. Su arquitectura
+típica se organiza en cuatro capas: recopilación de eventos de múltiples
+fuentes, normalización a un formato común, correlación mediante reglas y
+modelos de comportamiento, y presentación mediante cuadros de mando y
+herramientas de investigación forense.
+
+\subsection{Wazuh como plataforma SIEM y XDR}
+
+Wazuh~\cite{wazuh2024} es una plataforma \gls{siem} y \gls{xdr} de código
+abierto derivada de OSSEC. Su arquitectura se compone de tres elementos:
+
+\begin{itemize}
+  \item \textbf{Agente}: proceso ligero desplegado en cada sistema
+  monitorizado. Recoge eventos del sistema operativo, monitoriza la
+  integridad de ficheros y envía todo al manager mediante \gls{tls} mutuo.
+  Consume menos de 35~MB de memoria en reposo.
+
+  \item \textbf{Manager}: núcleo del sistema. Decodifica los eventos
+  mediante expresiones regulares y XML, aplica las reglas de correlación
+  y genera las alertas.
+
+  \item \textbf{Indexer}: basado en OpenSearch, almacena todas las alertas
+  y permite su consulta mediante una \gls{api} REST.
+\end{itemize}
+
+\subsection{File Integrity Monitoring en Wazuh}
+
+El \gls{fim} es la capacidad más relevante de Wazuh para la detección de
+ransomware. El módulo \texttt{syscheck} monitoriza directorios y ficheros
+para detectar cualquier cambio: creación, modificación, eliminación o
+cambio de permisos. En modo \textit{realtime}, utiliza \texttt{inotify}
+en Linux para detectar cambios inmediatamente sin esperar a un ciclo de
+escaneo periódico.
+
+La detección de ransomware mediante \gls{fim} se basa en la observación de
+que un cifrador masivo produce un número anómalo de eventos de modificación
+o creación de ficheros en un período breve. Las reglas de frecuencia de
+Wazuh permiten configurar umbrales: si se detectan más de N cambios en T
+segundos, se genera una alerta de nivel elevado.
+
+\subsection{Alternativas SIEM de código abierto}
+
+La elección de Wazuh frente a otras plataformas SIEM de código abierto
+merece justificación explícita, dado que el ecosistema ofrece varias
+alternativas maduras.
+
+\begin{description}
+  \item[OSSEC clásico] Wazuh es históricamente un \textit{fork} de OSSEC,
+  del que hereda el motor de reglas y el módulo de \gls{fim}. OSSEC
+  clásico permanece disponible pero su desarrollo es mucho menos activo y
+  carece de un componente de indexación y visualización integrado
+  equivalente al Indexer/OpenSearch de Wazuh, lo que obligaría a integrar
+  manualmente una solución de almacenamiento y consulta separada.
+
+  \item[Security Onion] Distribución Linux completa orientada a
+  \gls{siem} y detección de intrusiones de red, que integra Suricata, Zeek
+  y una pila Elastic completa. Ofrece una cobertura de red muy superior a
+  Wazuh de fábrica, pero su despliegue está pensado para una máquina o
+  clúster dedicado con requisitos de recursos considerablemente mayores,
+  lo que la hace menos adecuada para un laboratorio basado en contenedores
+  ligeros ejecutado sobre un único equipo de sobremesa.
+
+  \item[Suricata + pila ELK autogestionada] Permite un control total sobre
+  cada componente, pero exige construir manualmente la correlación de
+  reglas, el \gls{fim} y el enriquecimiento de eventos que Wazuh
+  proporciona de forma nativa. El coste de ingeniería para alcanzar la
+  funcionalidad de detección requerida en este trabajo sería
+  considerablemente mayor que el de configurar reglas \textit{custom}
+  sobre una plataforma ya integrada.
+\end{description}
+
+Wazuh se seleccionó por tres motivos concretos: dispone de un módulo
+\gls{fim} en tiempo real maduro y bien documentado, que es la capacidad
+central que requiere este trabajo; su arquitectura de agente ligero
+(inferior a 35\,MB de memoria) encaja con el presupuesto de recursos de un
+laboratorio en contenedores; y su desarrollo activo como plataforma
+\gls{xdr} lo mantiene alineado con las necesidades de detección de
+amenazas modernas más allá del ámbito puramente SIEM.
+
+\subsection{Detección basada en auditd}
+
+Una alternativa al \gls{fim} es \texttt{auditd}, que intercepta las
+llamadas al sistema en el momento en que se producen. Proporciona mayor
+granularidad pero genera un volumen muy elevado de eventos y requiere
+soporte del kernel. En el laboratorio de este trabajo, \texttt{auditd} no
+pudo utilizarse debido a una incompatibilidad con el kernel CachyOS del
+sistema \textit{host}, documentada en el capítulo~\ref{C:arquitectura}.
+
+\section{El framework MITRE ATT\&CK}
+
+MITRE ATT\&CK~\cite{mitre2023} es una base de conocimiento desarrollada
+por la corporación MITRE que cataloga las tácticas y técnicas empleadas
+por actores de amenaza reales. La matriz ATT\&CK para Enterprise organiza
+más de 600~técnicas y sub-técnicas en catorce tácticas que abarcan el
+ciclo de vida completo de un ataque.
+
+Los cuatro escenarios de este trabajo mapean directamente con técnicas de
+la matriz:
+
+\begin{table}[!h]
+  \centering
+  \caption[Correspondencia entre escenarios del laboratorio y técnicas
+           MITRE ATT\&CK.]
+          {Correspondencia entre escenarios del laboratorio y técnicas
+           MITRE ATT\&CK.}
+  \label{tab:attck}
+  \begin{tabularx}{\textwidth}{C{1.8cm} C{2.8cm} X C{2.5cm}}
+    \toprule
+    \rowcolor{tabla-cabecera}
+    \textcolor{white}{\textbf{Escenario}} &
+    \textcolor{white}{\textbf{ID ATT\&CK}} &
+    \textcolor{white}{\textbf{Nombre}} &
+    \textcolor{white}{\textbf{Táctica}} \\
+    \midrule
+    E1 & T1486      & Data Encrypted for Impact  & Impacto \\
+    E2 & T1490      & Inhibit System Recovery     & Impacto \\
+    E3 & T1021.004  & Remote Services: SSH        & Mov. lateral \\
+    E4 & T1041      & Exfiltration Over C2        & Exfiltración \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Atomic Red Team~\cite{atomicredteam2024} es un \textit{framework} de
+simulación de ataques que proporciona implementaciones de código abierto
+de las técnicas ATT\&CK. Sus tests están diseñados para ser atómicos, es
+decir, ejecutan una única técnica en aislamiento y son ampliamente
+utilizados para validar la cobertura de herramientas de detección.
+
+\section{Trabajos relacionados}
+
+La literatura académica sobre evaluación experimental de estrategias de
+backup en escenarios de ransomware es escasa.
+
+Moussaileb et al.~\cite{moussaileb2021} proponen un sistema de detección basado en el
+análisis del acceso a ficheros en tiempo real, con tasas de verdaderos
+positivos superiores al 95\,\% en condiciones de laboratorio.
+
+Al-Mashhadani y Shafiq~\cite{almashhadani2019} evalúan técnicas de detección mediante
+aprendizaje automático sobre tráfico de red, logrando tasas de detección
+superiores al 98\,\% con tiempos inferiores a 30~segundos para el
+ransomware Locky.
+
+Cabaj y Mazurczyk~\cite{cabaj2016} analizan el comportamiento de red del ransomware
+CryptoWall y proponen un sistema de detección y mitigación basado en
+\gls{sdn}.
+
+Fuera de los tres trabajos centrados en detección, tres líneas de investigación
+recientes resultan particularmente relevantes para situar metodológicamente este
+\pfg, aunque abordan preguntas distintas a la comparación de estrategias de
+recuperación.
+
+Gehani et al.~\cite{gehani2023} abordan un problema distinto pero
+complementario: la falta de conjuntos de datos abiertos y reproducibles sobre el
+comportamiento real de binarios de ransomware. Su trabajo construye un
+\emph{dataset} de \emph{logs} de actividad y grafos de procedencia a partir de la
+ejecución de muestras reales en \emph{sandbox}, extraídas de repositorios como
+MalwareBazaar, y publica tanto los datos como el código de orquestación necesario
+para regenerarlos. Comparte con este trabajo el énfasis en la reproducibilidad
+como requisito metodológico de primer orden --- de hecho, el título del artículo,
+\emph{Towards Reproducible Ransomware Analysis}, podría aplicarse igualmente al
+laboratorio aquí presentado --- pero se centra en la caracterización del
+comportamiento del cifrador en sí, no en la comparación de estrategias de
+recuperación posteriores al ataque.
+
+Von der Assen et al.~\cite{vonderassen2024} proponen GuardFS, un sistema de
+ficheros \emph{overlay} para Linux que integra detección y mitigación de
+ransomware en la misma capa: intercepta el acceso a ficheros, extrae
+características del patrón de acceso mediante modelos entrenados y aplica una de
+tres estrategias de defensa activa (ofuscación, retardo o seguimiento del acceso)
+en tiempo real, antes de que se complete el cifrado. Este enfoque es
+complementario al de este \pfg: mientras que GuardFS actúa en la capa del sistema
+de ficheros para \emph{prevenir} o retrasar la pérdida de datos durante el
+ataque, el presente trabajo asume que el cifrado no puede evitarse por completo y
+se centra en garantizar la \emph{recuperación} posterior mediante almacenamiento
+inmutable, junto con una detección basada en \gls{fim} a nivel de \gls{siem} en
+lugar de a nivel de sistema de ficheros. Los resultados de GuardFS, que muestran
+que la pérdida de datos se reduce pero no se elimina completamente incluso con
+mitigación activa a nivel de \emph{filesystem}, refuerzan indirectamente la tesis
+de este trabajo: ninguna capa de defensa preventiva es suficiente por sí sola, y
+la garantía última de recuperación --- el objeto de estudio de este \pfg ---
+sigue siendo necesaria como última línea de defensa.
+
+Bitzki et al.~\cite{netsecbed2026} presentan NetSecBed, un \emph{testbed}
+nativo en contenedores para la generación reproducible de evidencias de
+experimentación en ciberseguridad, con 60~escenarios de ataque y nueve servicios
+objetivo implementados como contenedores de propósito único. Aunque orientado a
+entornos IoT/IIoT y no específicamente al ransomware, NetSecBed valida
+metodológicamente la decisión arquitectónica adoptada en el capítulo~\ref{C:arquitectura}
+de este trabajo: el uso de contenedores de propósito único orquestados
+declarativamente como mecanismo para lograr reproducibilidad, extensibilidad y
+trazabilidad en experimentación de ciberseguridad es una tendencia consolidada en
+la literatura reciente, y no una decisión de conveniencia aislada de este \pfg.
+
+Ninguno de estos trabajos aborda de forma experimental y controlada la
+comparación entre estrategias de backup en términos de \gls{mttr}, ni
+incluye la destrucción activa de las copias como variable experimental.
+El presente trabajo cubre ese vacío mediante un diseño factorial
+completamente automatizado y con análisis estadístico riguroso.
+
+\subsection{Análisis comparativo del vacío experimental}
+
+Se incluyen adicionalmente en la comparación los tres trabajos metodológicamente
+próximos discutidos anteriormente. Aunque Gehani et al.~\cite{gehani2023}
+alcanzan un grado de automatización y reproducibilidad comparable al de este
+\pfg (columna «Automatizado y reproducible»), su objeto de estudio es la propia
+ejecución del ransomware, no la comparación de estrategias de recuperación
+posteriores. Von der Assen et al.~\cite{vonderassen2024} evalúan
+sistemáticamente distintas configuraciones de defensa con métricas cuantitativas,
+lo que se refleja en la columna «Diseño repetido + estadística» como cobertura
+parcial, pero no comparan estrategias de \emph{backup} ni modelan la destrucción
+activa de copias. Bitzki et al.~\cite{netsecbed2026} logran un alto grado de
+automatización mediante contenedores de propósito único, en línea con la
+arquitectura de este trabajo, pero su dominio de aplicación (tráfico de red
+IoT/IIoT) es ajeno al ransomware y a la evaluación de estrategias de recuperación.
+
+La Tabla~\ref{tab:gap-analysis} sintetiza las dimensiones metodológicas
+cubiertas por cada trabajo relacionado frente a las cubiertas por el
+presente \pfg. Se han seleccionado cuatro dimensiones que resultan
+particularmente relevantes para el objetivo de este trabajo: si el estudio
+incluye la destrucción activa de copias de seguridad como parte del
+escenario de amenaza, si compara estrategias de recuperación (y no
+únicamente mecanismos de detección), si aplica un diseño experimental
+repetido con análisis estadístico de significancia, y si el entorno es
+completamente automatizado y reproducible por terceros.
+
+\begin{table}[!h]
+  \centering
+  \caption[Comparación metodológica con los trabajos relacionados.]
+          {Comparación metodológica con los trabajos relacionados.}
+  \label{tab:gap-analysis}
+  \begin{tabularx}{\textwidth}{X C{2.6cm} C{2.6cm} C{2.6cm} C{2.6cm}}
+    \toprule
+    \rowcolor{tabla-cabecera}
+    \textcolor{white}{\textbf{Trabajo}} &
+    \textcolor{white}{\textbf{Destrucción de backups}} &
+    \textcolor{white}{\textbf{Compara recuperación}} &
+    \textcolor{white}{\textbf{Diseño repetido + estadística}} &
+    \textcolor{white}{\textbf{Automatizado y reproducible}} \\
+    \midrule
+    Moussaileb et al.~\cite{moussaileb2021}      & No & No & No & No \\
+    Al-Mashhadani y Shafiq~\cite{almashhadani2019} & No & No & Parcial & No \\
+    Cabaj y Mazurczyk~\cite{cabaj2016}            & No & No & No & No \\
+    Gehani et al.~\cite{gehani2023}                & No & No & No & Parcial \\
+    Von der Assen et al.~\cite{vonderassen2024}    & No & No & Parcial & No \\
+    Bitzki et al.~\cite{netsecbed2026}              & No & No & No & Sí \\
+    \textbf{Este trabajo}                         & \textbf{Sí} & \textbf{Sí} & \textbf{Sí} & \textbf{Sí} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Los tres trabajos revisados comparten un enfoque centrado exclusivamente
+en la \emph{detección} del ransomware --- mediante acceso a ficheros,
+tráfico de red o ambos --- evaluada sobre un único conjunto de muestras
+sin repeticiones ni análisis de significancia estadística. Ninguno modela
+la fase de destrucción de copias de seguridad como parte del escenario de
+amenaza, pese a que, como se ha argumentado en la
+sección~\ref{sec:destruccion-backups}, esta fase es un
+componente sistemático del ransomware moderno desde 2019. Esta ausencia es
+precisamente el vacío que motiva el diseño experimental del
+capítulo~\ref{C:disenyo}: sin una variable experimental que capture la
+destrucción activa del repositorio, ningún estudio previo puede
+diferenciar entre una estrategia de backup rápida y una estrategia de
+backup \emph{disponible}, distinción que resulta central en los
+resultados de este trabajo (capítulo~\ref{C:resultados}).
+
+\end{document}

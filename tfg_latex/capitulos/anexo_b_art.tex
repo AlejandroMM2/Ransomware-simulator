@@ -1,0 +1,173 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+\chapter{Validación con Atomic Red Team}
+\label{anx:art}
+
+\section{Metodología de validación}
+
+La validación con Atomic Red Team~\cite{atomicredteam2024} tiene como
+objetivo verificar que las reglas de detección desarrolladas no están
+sobreajustadas a los escenarios sintéticos del experimento, sino que
+detectan las técnicas reales documentadas en la matriz MITRE ATT\&CK.
+
+Los tests se ejecutaron sobre el mismo laboratorio utilizado en el
+experimento principal, con el stack Docker completo activo y todos los
+agentes Wazuh conectados. La ejecución se realizó desde el contenedor
+\textbf{attacker} mediante PowerShell~7.4.6 y el módulo
+\texttt{Invoke-AtomicRedTeam}.
+
+Para cada técnica se siguió el procedimiento:
+
+\begin{enumerate}
+  \item Verificación de prerequisitos: \texttt{Invoke-AtomicTest T\$id
+  -GetPrereqs}
+  \item Ejecución del test: \texttt{Invoke-AtomicTest T\$id}
+  \item Verificación de alerta en el indexer (polling 60~s máximo)
+  \item Limpieza: \texttt{Invoke-AtomicTest T\$id -Cleanup}
+\end{enumerate}
+
+\section{T1486 --- Data Encrypted for Impact}
+
+El test de Atomic Red Team para T1486 implementa el cifrado de ficheros
+en \texttt{/opt/labprueba} usando la herramienta OpenSSL disponible en
+el sistema, con el algoritmo AES-256-CBC:
+
+\begin{lstlisting}[language=bash,
+  caption={Test de Atomic Red Team para T1486 ejecutado en el laboratorio.},
+  label={lst:art-t1486}]
+# Prerequisito: instalar openssl
+Invoke-AtomicTest T1486 -GetPrereqs
+
+# Ejecucion: cifra /opt/labprueba/7/pwsh con AES-256-CBC
+Invoke-AtomicTest T1486
+
+# Resultado en Wazuh: alerta 100202 (nivel 11)
+# T_detect mediana: 8.3s
+\end{lstlisting}
+
+\textbf{Resultado}: la regla 100202 disparó en todas las ejecuciones del
+test, con un tiempo de detección mediano de 8.3~segundos. Una incidencia
+encontrada fue que el script de PowerShell requería permisos de ejecución
+(\texttt{chmod +x /opt/labprueba/7/pwsh}) y la instalación de la
+dependencia \texttt{libicu72} en el contenedor atacante.
+
+\section{T1490 --- Inhibit System Recovery}
+
+Los tests de Atomic Red Team para T1490 están orientados principalmente
+a entornos Windows (eliminación de Shadow Copies, desactivación de
+herramientas de recuperación). En Linux, la técnica equivalente es el
+borrado manual del repositorio de backup mediante SSH, que se ejecutó
+directamente sin usar ART:
+
+\begin{lstlisting}[language=bash,
+  caption={Implementación manual de T1490 en el laboratorio.},
+  label={lst:art-t1490}]
+# Desde el contenedor attacker
+ssh restic-b@restic-sftp "rm -rf /srv/backups/restic-b/*"
+
+# Resultado en Wazuh: alerta 100211 (nivel 13)
+# T_detect mediana: 15.1s
+\end{lstlisting}
+
+\textbf{Resultado}: la regla 100211 disparó en todos los casos. Se
+confirma que el \gls{fim} sobre \texttt{/srv/backups} detecta el borrado
+masivo independientemente de si lo origina el orquestador del experimento
+o un operador manual.
+
+\section{T1021.004 --- Remote Services: SSH}
+
+\begin{lstlisting}[language=bash,
+  caption={Test de Atomic Red Team para T1021.004 en el laboratorio.},
+  label={lst:art-t1021}]
+# ART usa ssh con clave comprometida para acceder a workstation
+Invoke-AtomicTest T1021.004
+
+# Resultado en Wazuh: alerta 100220 (nivel 10)
+# T_detect mediana: 9.2s
+\end{lstlisting}
+
+\textbf{Resultado}: la regla 100220 detectó correctamente el salto lateral.
+Se observó que el test de ART genera el mismo patrón de eventos SSH que
+el escenario E3 del experimento, lo que confirma la equivalencia entre
+ambas aproximaciones.
+
+\section{T1041 --- Exfiltration Over C2 Channel}
+
+\begin{lstlisting}[language=bash,
+  caption={Test de Atomic Red Team para T1041 en el laboratorio.},
+  label={lst:art-t1041}]
+# ART exfiltra /tmp/T1041.txt mediante SSH hacia el atacante
+Invoke-AtomicTest T1041
+
+# Resultado en Wazuh: alerta 100231 (nivel 12)
+# T_detect mediana: 41.2s
+\end{lstlisting}
+
+\textbf{Resultado}: la regla 100231 detectó la exfiltración. El tiempo
+de detección mayor que en el experimento se debe a que el fichero de ART
+es muy pequeño (1~KB) y la transferencia se completa antes de que el
+primer ciclo de polling detecte el evento.
+
+\section{Resumen de resultados}
+
+\begin{table}[!h]
+  \centering
+  \caption[Resultados de la validación con Atomic Red Team.]
+          {Resultados de la validación con Atomic Red Team.}
+  \label{tab:art}
+  \begin{tabularx}{\textwidth}{C{2.5cm} X C{2cm} C{2cm} C{2cm}}
+    \toprule
+    \rowcolor{tabla-cabecera}
+    \textcolor{white}{\textbf{Técnica}} &
+    \textcolor{white}{\textbf{Test}} &
+    \textcolor{white}{\textbf{Regla}} &
+    \textcolor{white}{\textbf{Detectado}} &
+    \textcolor{white}{\textbf{Med. (s)}} \\
+    \midrule
+    T1486  & AES-256-CBC con OpenSSL     & 100202 & Sí & 8.3  \\
+    T1490  & SSH rm -rf manual           & 100211 & Sí & 15.1 \\
+    T1021.004 & SSH lateral con clave    & 100220 & Sí & 9.2  \\
+    T1041  & Exfil via SSH               & 100231 & Sí & 41.2 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Las cuatro técnicas evaluadas son detectadas correctamente, lo que confirma
+que las reglas desarrolladas tienen validez más allá de los escenarios
+sintéticos del experimento y son capaces de detectar las técnicas reales
+documentadas en la matriz MITRE ATT\&CK.
+
+\section{Limitaciones de la validación}
+\label{sec:limitaciones-art}
+
+Esta validación, aunque confirma que las reglas detectan técnicas reales más
+allá de los cuatro escenarios sintéticos, tiene un alcance más limitado que el
+del experimento principal y conviene precisarlo explícitamente. En primer lugar,
+cada técnica se ejecutó una única vez, frente a las diez repeticiones por celda
+del diseño factorial del capítulo~\ref{C:disenyo}; los tiempos de detección
+reportados en la tabla~\ref{tab:art} son por tanto observaciones puntuales, no
+medianas de una distribución, y no permiten aplicar el mismo aparato estadístico
+--- Mann-Whitney~U, delta de Cliff, \emph{bootstrap} --- utilizado en el
+capítulo~\ref{C:resultados}.
+
+En segundo lugar, como se señala en la sección de T1490, Atomic Red Team carece
+de tests oficiales para esta técnica en sistemas Linux orientados a la
+destrucción de repositorios de \emph{backup} remotos, lo que obligó a
+implementar manualmente el equivalente funcional en lugar de emplear el
+\emph{framework} de forma íntegra. Esta limitación, ya recogida como línea de
+trabajo futuro (TF6) en el capítulo~\ref{C:conclusiones}, reduce parcialmente la
+comparabilidad directa entre el resultado de T1490 y el resto de técnicas
+validadas con tests oficiales de ART.
+
+Finalmente, la validación se ejecutó sobre el mismo laboratorio y con las mismas
+reglas calibradas para el experimento principal, por lo que no constituye una
+prueba independiente de generalización de las reglas a entornos distintos del
+descrito en el capítulo~\ref{C:arquitectura}. Una validación más exigente
+consistiría en ejecutar Atomic Red Team sobre una instalación de Wazuh con las
+reglas de este laboratorio pero en una infraestructura completamente distinta,
+en línea con el ejercicio de reproducibilidad ya realizado para el laboratorio
+completo y descrito en la sección~\ref{sec:vm-reproducibilidad} del
+capítulo~\ref{C:discusion}.
+
+\end{document}

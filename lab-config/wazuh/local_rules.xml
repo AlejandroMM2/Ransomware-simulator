@@ -1,0 +1,87 @@
+<!-- /var/ossec/etc/rules/local_rules.xml -->
+<!-- Reglas custom del laboratorio PFG (basadas en FIM y SSH, sin auditd) -->
+
+<group name="lab,e1_local,">
+
+  <rule id="100200" level="10" frequency="20" timeframe="60">
+    <if_matched_sid>550</if_matched_sid>
+    <field name="file">^/opt/labprueba/</field>
+    <description>E1: cambio masivo de ficheros en /opt/labprueba (posible cifrado)</description>
+  </rule>
+
+  <rule id="100201" level="12">
+    <if_sid>554</if_sid>
+    <field name="file" type="pcre2">^/tmp/.*\.(sh|py|pl|bin)$</field>
+    <description>E1: fichero ejecutable creado en /tmp (posible payload)</description>
+  </rule>
+
+  <rule id="100202" level="11" frequency="10" timeframe="60">
+    <if_matched_group>syscheck</if_matched_group>
+    <field name="file" type="pcre2">\.encrypted$|\.locked$|\.crypto$</field>
+    <description>E1: renombrado masivo a extension tipica de ransomware</description>
+  </rule>
+
+</group>
+
+<group name="lab,e2_destroy,">
+
+  <rule id="100211" level="13" frequency="10" timeframe="60">
+    <if_matched_sid>553</if_matched_sid>
+    <match>/srv/backups/</match>
+    <description>E2: borrado masivo en repositorio Restic</description>
+  </rule>
+
+  <rule id="100212" level="14">
+    <decoded_as>json</decoded_as>
+    <field name="scenario">E2</field>
+    <field name="event">immutability_verified</field>
+    <description>E2: DELETE bloqueado por Object Lock - INMUTABILIDAD VERIFICADA</description>
+  </rule>
+
+  <rule id="100213" level="15">
+    <decoded_as>json</decoded_as>
+    <field name="scenario">E2</field>
+    <field name="event">immutability_FAILED</field>
+    <description>E2: DELETE EXITOSO - INMUTABILIDAD FALLO</description>
+  </rule>
+
+</group>
+
+<group name="lab,e3_lateral,">
+
+  <rule id="100220" level="10">
+    <if_sid>5715</if_sid>
+    <srcip>172.20.0.10</srcip>
+    <description>E3: sesion SSH aceptada desde fileserver</description>
+  </rule>
+
+  <rule id="100222" level="10">
+    <if_sid>5715</if_sid>
+    <srcip>172.20.0.11</srcip>
+    <description>E3: sesion SSH aceptada desde workstation</description>
+  </rule>
+
+</group>
+
+<group name="lab,e4_exfil,">
+
+  <rule id="100230" level="11">
+    <if_sid>5715</if_sid>
+    <srcip>172.20.0.30</srcip>
+    <description>E4: sesion SSH aceptada desde el atacante</description>
+  </rule>
+
+  <rule id="100231" level="12">
+    <if_sid>554</if_sid>
+    <field name="file" type="pcre2">^/tmp/.*\.(tar|tar\.gz|zip|7z)$</field>
+    <description>E4: fichero comprimido creado en /tmp (empaquetado para exfil)</description>
+  </rule>
+
+  <rule id="100240" level="12">
+    <decoded_as>json</decoded_as>
+    <field name="scenario">E4</field>
+    <field name="event">step3_exfil_complete</field>
+    <description>E4: exfiltracion completada - datos transferidos al atacante</description>
+  </rule>
+
+</group>

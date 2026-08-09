@@ -1,0 +1,83 @@
+docker exec -it wazuh-manager /var/ossec/bin/wazuh-logtest
+
+Test 1 (encryptor desde /tmp):
+type=SYSCALL msg=audit(1234567890.123:456): arch=c000003e syscall=59 success=yes exit=0 comm="python3" exe="/tmp/encryptor.py" key="tmp_exec"
+Espero: 100201 (nivel 12).
+
+## Salida:
+**Phase 1: Completed pre-decoding.
+ full event: 'type=SYSCALL msg=audit(1234567890.123:456): arch=c000003e syscall=59 success=yes exit=0 comm="python3" exe="/tmp/encryptor.py" key="tmp_exec"'
+
+**Phase 2: Completed decoding.
+ name: 'auditd'
+ parent: 'auditd'
+ audit.command: 'python3'
+ audit.exe: '/tmp/encryptor'
+ audit.id: '456'
+ audit.key: 'tmp_exec'
+ audit.type: 'SYSCALL'
+
+**Phase 3: Completed filtering (rules).
+ id: '100201'
+ level: '12'
+ description: 'E1: ejecucion de proceso desde /tmp (payload sospechoso)'
+ groups: '['lab', 'e1_local']'
+ firedtimes: '1'
+ mail: 'True'
+**Alert to be generated.
+
+
+
+
+Test 2 (netcat):
+type=SYSCALL msg=audit(1234567890.123:789): arch=c000003e syscall=59 success=yes exit=0 comm="nc" exe="/usr/bin/nc" key="tmp_exec"
+Espero: 100231 (nivel 12), no 100201.
+
+## Salida:
+**Phase 1: Completed pre-decoding.
+ full event: 'type=SYSCALL msg=audit(1234567890.123:789): arch=c000003e syscall=59 success=yes exit=0 comm="nc" exe="/usr/bin/nc" key="tmp_exec"'
+
+**Phase 2: Completed decoding.
+ name: 'auditd'
+ parent: 'auditd'
+ audit.command: 'nc'
+ audit.exe: '/usr/bin/nc'
+ audit.id: '789'
+ audit.key: 'tmp_exec'
+ audit.type: 'SYSCALL'
+
+**Phase 3: Completed filtering (rules).
+ id: '100231'
+ level: '12'
+ description: 'E4: uso de netcat - potencial exfiltracion'
+ groups: '['lab', 'e4_exfil']'
+ firedtimes: '1'
+ mail: 'True'
+
+
+
+ 
+Test 3 (tar):
+type=SYSCALL msg=audit(1234567890.123:321): arch=c000003e syscall=59 success=yes exit=0 comm="tar" exe="/usr/bin/tar" key="tmp_exec"
+
+## Salida:
+**Phase 1: Completed pre-decoding.
+ full event: 'type=SYSCALL msg=audit(1234567890.123:321): arch=c000003e syscall=59 success=yes exit=0 comm="tar" exe="/usr/bin/tar" key="tmp_exec"'
+
+**Phase 2: Completed decoding.
+ name: 'auditd'
+ parent: 'auditd'
+ audit.command: 'tar'
+ audit.exe: '/usr/bin/tar'
+ audit.id: '321'
+ audit.key: 'tmp_exec'
+ audit.type: 'SYSCALL'
+
+**Phase 3: Completed filtering (rules).
+ id: '100232'
+ level: '9'
+ description: 'E4: tar empaquetando - posible exfiltracion'
+ groups: '['lab', 'e4_exfil']'
+ firedtimes: '1'
+ mail: 'False'
+**Alert to be generated.

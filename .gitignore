@@ -1,0 +1,26 @@
+# Datos experimentales (guardar en /pfg/backups separadamente)
+results/raw_*.csv
+results/figura*.png
+
+# Certificados generados localmente
+certs/
+
+# Logs
+*.log
+/var/log/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Temporales
+/tmp/
+*.tmp
+*.bak
+
+# Claves privadas SSH (solo las públicas van al repo)
+lab-config/ssh-keys/*_key
+lab-config/ssh-keys/restic_*_key
+!lab-config/ssh-keys/*.pub
+!lab-config/ssh-keys/*.pub.example

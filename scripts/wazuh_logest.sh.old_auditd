@@ -1,0 +1,69 @@
+#!/bin/bash
+#
+# test_wazuh_logtest.sh
+# Ejecuta wazuh-logtest dentro del contenedor wazuh-manager con 3 eventos
+# de auditd (ejecución desde /tmp, netcat y tar) y guarda las salidas.
+
+set -euo pipefail
+
+CONTAINER="wazuh-manager"
+LOGTEST_BIN="/var/ossec/bin/wazuh-logtest"
+OUTDIR="./wazuh_logtest_results"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+REPORT="${OUTDIR}/logtest_report_${TIMESTAMP}.txt"
+
+mkdir -p "$OUTDIR"
+
+# Nombre de la prueba | evento de auditd
+declare -A TESTS=(
+  ["Test1_encryptor_tmp"]='type=SYSCALL msg=audit(1234567890.123:456): arch=c000003e syscall=59 success=yes exit=0 comm="python3" exe="/tmp/encryptor.py" key="tmp_exec"'
+  ["Test2_netcat"]='type=SYSCALL msg=audit(1234567890.123:789): arch=c000003e syscall=59 success=yes exit=0 comm="nc" exe="/usr/bin/nc" key="tmp_exec"'
+  ["Test3_tar"]='type=SYSCALL msg=audit(1234567890.123:321): arch=c000003e syscall=59 success=yes exit=0 comm="tar" exe="/usr/bin/tar" key="tmp_exec"'
+)
+
+# Orden fijo (los arrays asociativos no garantizan orden)
+ORDER=("Test1_encryptor_tmp" "Test2_netcat" "Test3_tar")
+
+run_test() {
+  local name="$1"
+  local event="$2"
+  local outfile="${OUTDIR}/${name}_${TIMESTAMP}.log"
+
+  echo "=============================================="
+  echo ">> Ejecutando ${name}"
+  echo "Evento: ${event}"
+  echo "=============================================="
+
+  # wazuh-logtest lee el evento de stdin y espera Ctrl+C/EOF para salir.
+  # Se envía el evento seguido de una línea vacía para forzar el procesamiento.
+  {
+    printf '%s\n' "$event"
+    sleep 2
+  } | docker exec -i "$CONTAINER" "$LOGTEST_BIN" > "$outfile" 2>&1 || true
+
+  echo "Salida guardada en: $outfile"
+  echo
+}
+
+: > "$REPORT"
+echo "Reporte de pruebas wazuh-logtest - $(date)" >> "$REPORT"
+echo "==============================================" >> "$REPORT"
+
+for name in "${ORDER[@]}"; do
+  run_test "$name" "${TESTS[$name]}"
+
+  {
+    echo
+    echo "### ${name} ###"
+    echo "Evento enviado:"
+    echo "${TESTS[$name]}"
+    echo
+    echo "Salida:"
+    cat "${OUTDIR}/${name}_${TIMESTAMP}.log"
+    echo
+    echo "----------------------------------------------"
+  } >> "$REPORT"
+done
+
+echo "Todas las pruebas finalizaron."
+echo "Reporte consolidado: $REPORT"

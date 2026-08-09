@@ -1,0 +1,355 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+\chapter{Introducción}
+\label{C:introduccion}
+
+\section{Contexto y motivación}
+
+La digitalización acelerada de los últimos años ha transformado los datos
+en el activo más valioso de cualquier organización. Empresas, hospitales,
+administraciones públicas e instituciones educativas almacenan hoy en día
+volúmenes de información sin precedentes. Esta concentración de valor en
+entornos digitales ha atraído inevitablemente la atención de los
+ciberdelincuentes, que han desarrollado herramientas cada vez más
+sofisticadas para explotar esa dependencia.
+
+Entre todas las amenazas del panorama actual de ciberseguridad, el
+ransomware ocupa un lugar destacado por su capacidad de causar daños
+inmediatos, tangibles y difícilmente reversibles. Según el informe
+IBM X-Force Threat Intelligence Index~2024~\cite{ibm2024}, el tiempo
+medio que transcurre entre la intrusión inicial y la detección supera
+los 200~días en entornos sin instrumentación activa. Las consecuencias
+económicas son devastadoras: el informe de Veeam Data Protection
+Trends~2024~\cite{veeam2024} estima que el coste medio de un ataque de
+ransomware para una organización mediana supera los cuatro millones de
+dólares.
+
+El mecanismo de funcionamiento del ransomware moderno sigue un patrón
+conocido como la cadena de ataque o \textit{kill chain}. Tras obtener
+acceso inicial, el atacante pasa un período de reconocimiento en el que
+mapea la red, escala privilegios y, crucialmente, localiza y destruye las
+copias de seguridad. Solo entonces despliega el cifrador. Esta secuencia
+es especialmente relevante para comprender por qué las estrategias de
+backup tradicionales han ido perdiendo efectividad: los atacantes obtienen
+con frecuencia credenciales que les permiten acceder y destruir los
+repositorios antes del cifrado.
+
+Frente a este panorama han surgido dos líneas de respuesta complementarias
+que este trabajo estudia de forma conjunta: el almacenamiento inmutable
+mediante Object Lock en plataformas S3-compatibles, y la instrumentación
+del entorno con un \gls{siem} para detectar el ataque en las fases más
+tempranas posibles.
+
+La motivación personal de este proyecto surge directamente de la experiencia
+profesional como administrador de sistemas. En el día a día de la
+administración de infraestructuras IT, la decisión sobre qué solución de
+backup adoptar raramente se apoya en datos empíricos comparativos. Este
+trabajo intenta aportar datos concretos, obtenidos en un entorno
+reproducible y con metodología estadística rigurosa.
+
+\subsection{Marco regulatorio: presión normativa sobre la resiliencia
+de datos}
+
+La motivación técnica descrita anteriormente convive con una presión
+regulatoria creciente que refuerza la relevancia práctica de este trabajo.
+La Directiva (UE) 2022/2555, conocida como NIS2, entró en aplicación en
+octubre de 2024 y amplía sustancialmente el número de sectores obligados a
+implantar medidas de gestión de riesgos de ciberseguridad, incluyendo de
+forma explícita la gestión de copias de seguridad y los planes de
+recuperación ante desastres entre las medidas mínimas exigidas a las
+entidades esenciales e importantes. El incumplimiento contempla sanciones
+de hasta el 2\,\% de la facturación anual global para las entidades
+esenciales.
+
+En el ámbito español, el Esquema Nacional de Seguridad (ENS), regulado por
+el Real Decreto 311/2022, establece para las administraciones públicas
+requisitos específicos sobre continuidad del servicio (medida \texttt{mp.cont})
+que incluyen la realización de copias de seguridad periódicas y pruebas de
+restauración documentadas. Ambos marcos comparten un principio de fondo
+directamente relevante para este \pfg: no basta con \emph{tener} una copia
+de seguridad, sino que debe demostrarse que dicha copia sigue estando
+disponible e íntegra frente a un adversario activo, no solo frente a fallos
+accidentales de hardware. Esta distinción --- disponibilidad frente a un
+fallo pasivo frente a disponibilidad frente a un adversario que
+intenta activamente destruir la copia --- es precisamente el eje
+experimental de este trabajo y se retomará con evidencia empírica en el
+capítulo~\ref{C:discusion}.
+
+Aunque el laboratorio desarrollado no pretende certificar el cumplimiento
+de ninguna normativa concreta, los resultados obtenidos son directamente
+trasladables a la justificación técnica que exige, por ejemplo, la medida
+\texttt{mp.cont.2} (continuidad del servicio) del ENS o el artículo~21 de
+NIS2 relativo a la gestión de la continuidad de negocio.
+
+\subsection{Modelo de amenaza}
+\label{sec:modelo-amenaza}
+
+Para interpretar correctamente el alcance de los resultados presentados en los
+capítulos siguientes conviene explicitar, ya desde la introducción, el modelo de
+amenaza asumido por el laboratorio. Se adopta un modelo de adversario con las
+siguientes capacidades y limitaciones, coherente con el comportamiento
+documentado de los grupos \gls{raas} descrito en el
+capítulo~\ref{C:estado_arte}:
+
+\begin{description}
+  \item[Capacidades asumidas] El atacante dispone de credenciales \gls{ssh}
+  válidas sobre el \emph{fileserver}, obtenidas por un vector no modelado en el
+  laboratorio (véase «Vector de acceso inicial» más abajo). A partir de ese punto,
+  el atacante actúa con los mismos privilegios que un administrador de sistemas
+  legítimo sobre los recursos accesibles desde esa cuenta: puede leer, modificar
+  y eliminar ficheros del \emph{fileserver}, ejecutar \emph{scripts} arbitrarios,
+  y utilizar las credenciales almacenadas localmente (claves \gls{ssh}, tokens de
+  \gls{api}) para pivotar hacia otros sistemas alcanzables, como se modela en el
+  escenario~E3.
+
+  \item[Capacidades explícitamente excluidas] El atacante no dispone de acceso
+  físico a ningún equipo, no puede comprometer el \emph{firmware} ni el
+  \emph{hipervisor} subyacente, y no dispone de capacidad para modificar el
+  binario o la configuración de MinIO ni de Wazuh a nivel de sistema operativo del
+  \emph{host}. Esta última exclusión es la que sostiene la garantía de
+  inmutabilidad evaluada en el escenario~E2: si el modelo de amenaza incluyera
+  compromiso del \emph{host} de MinIO, la protección de Object Lock podría
+  eludirse, como se reconoce explícitamente en la discusión del
+  capítulo~\ref{C:discusion}.
+
+  \item[Objetivo del atacante] Maximizar el daño mediante cifrado irreversible de
+  los datos y, cuando es posible, la destrucción de las copias de recuperación
+  disponibles, siguiendo el patrón de \emph{doble extorsión} descrito en la
+  sección~\ref{sec:destruccion-backups}. El laboratorio no modela la fase de
+  exfiltración con fines de extorsión adicional más allá del escenario~E4, que se
+  limita a evaluar la detectabilidad de la transferencia de datos.
+
+  \item[Nivel de sofisticación] Se asume un adversario con conocimientos técnicos
+  equivalentes a un afiliado \gls{raas} de nivel medio: capaz de utilizar
+  herramientas estándar de línea de comandos (\texttt{ssh}, \texttt{aws cli},
+  \texttt{scp}) pero sin desarrollo de \emph{malware} a medida ni técnicas
+  avanzadas de evasión de \gls{edr} como las descritas en la
+  sección~\ref{sec:evasion-edr} del capítulo~\ref{C:estado_arte}. Esta
+  simplificación es coherente con el alcance declarado en la sección siguiente y
+  se revisita como limitación en el capítulo~\ref{C:discusion}.
+\end{description}
+
+\section{Objetivos}
+
+El \textbf{objetivo general} del trabajo es evaluar de forma experimental
+el impacto de distintas estrategias de \textit{backup} sobre la capacidad
+de recuperación ante un ataque de ransomware simulado, en un entorno
+instrumentado con un \gls{siem}.
+
+De este objetivo general se derivan los siguientes \textbf{objetivos
+específicos}:
+
+\begin{enumerate}[label=OE\arabic*., leftmargin=2.5cm]
+  \item Diseñar e implementar un laboratorio de simulación de ransomware
+  basado en contenedores Docker que sea reproducible, portable y
+  completamente automatizado.
+
+  \item Implementar y comparar tres estrategias de \textit{backup}: ausencia
+  de copia, copia en repositorio Restic sobre \gls{sftp} convencional, y
+  copia en almacenamiento de objetos con Object Lock COMPLIANCE.
+
+  \item Definir cuatro escenarios de ataque que cubran las tácticas más
+  relevantes del ransomware moderno según la matriz MITRE ATT\&CK.
+
+  \item Instrumentar el entorno con Wazuh \gls{siem} y desarrollar reglas
+  de detección específicas para cada escenario, basadas en \gls{fim} y
+  eventos estructurados de aplicación.
+
+  \item Ejecutar un diseño factorial de 120~ejecuciones experimentales y
+  analizar los resultados con pruebas estadísticas no paramétricas:
+  Mann-Whitney~U, delta de Cliff, \textit{bootstrap} de intervalos de
+  confianza y test exacto de Fisher.
+
+  \item Validar las reglas de detección con técnicas reales del
+  \textit{framework} MITRE ATT\&CK mediante Atomic Red Team.
+
+  \item Publicar el laboratorio como software libre con documentación
+  suficiente para reproducir los experimentos.
+\end{enumerate}
+
+\section{Hipótesis de investigación}
+
+El trabajo plantea tres hipótesis:
+
+\begin{description}
+  \item[H1] La estrategia con Object Lock COMPLIANCE reduce el \gls{mttr}
+  en al menos un 30\,\% respecto a la estrategia Restic sobre \gls{sftp}
+  convencional.
+
+  \item[H2] La detección automatizada mediante \gls{siem} permite
+  identificar el inicio de un ataque en un tiempo mediano ($\tdetect$)
+  inferior a 60~segundos en todos los escenarios evaluados.
+
+  \item[H3] Ante la destrucción activa del repositorio de \textit{backup},
+  la estrategia con Object Lock mantiene una tasa de recuperación exitosa
+  significativamente superior a la estrategia SFTP (test exacto de Fisher,
+  $\alpha = 0.05$).
+\end{description}
+
+\section{Alcance y limitaciones iniciales}
+
+Para situar correctamente las aportaciones de este trabajo es necesario
+delimitar explícitamente su alcance desde el planteamiento inicial, con
+independencia de las limitaciones metodológicas que se detallarán tras la
+presentación de resultados (capítulo~\ref{C:discusion}).
+
+\begin{description}
+  \item[Escala del laboratorio] El entorno reproduce una infraestructura
+  empresarial \emph{mínima} (un fileserver, una workstation, un servidor de
+  backup y un SIEM) desplegada sobre un único equipo físico mediante
+  contenedores Docker. No se pretende representar la complejidad de una red
+  corporativa real con segmentación VLAN, múltiples dominios de Active
+  Directory o miles de endpoints.
+
+  \item[Familias de ransomware simuladas] El laboratorio emplea un cifrador
+  sintético desarrollado \textit{ad hoc} que reproduce el comportamiento
+  esencial de un cifrador de ransomware (recorrido recursivo del sistema de
+  ficheros, cifrado con AES-256-GCM y renombrado con extensión distintiva).
+  No se ejecuta \textit{malware} real de ninguna familia conocida (LockBit,
+  BlackCat, Cl0p, etc.), tanto por razones de seguridad del entorno de
+  experimentación como por la imposibilidad de obtener licencias de
+  investigación para muestras activas en el marco temporal de un \pfg.
+
+  \item[Vector de acceso inicial] El experimento asume que el atacante ya
+  dispone de acceso inicial al fileserver (mediante credenciales SSH
+  comprometidas). No se modelan las fases previas de la cadena de ataque
+  --- \textit{phishing}, explotación de vulnerabilidades públicas o compra
+  de accesos en mercados clandestinos --- que en un incidente real
+  preceden a la fase de impacto aquí estudiada.
+
+  \item[Alcance del análisis SIEM] La instrumentación se centra
+  deliberadamente en dos fuentes de datos (\gls{fim} y eventos de
+  aplicación estructurados). Quedan fuera del alcance otras fuentes
+  relevantes en un SOC real, como el análisis de tráfico de red mediante
+  Suricata o Zeek, el análisis de comportamiento de usuario
+  (\gls{ueba}) o la telemetría de \textit{endpoint} mediante \gls{xdr}
+  comercial.
+
+  \item[Generalización de resultados] Los resultados cuantitativos (MTTR,
+  $\tdetect$) son específicos del hardware, la configuración de red y los
+  parámetros de Wazuh empleados en este laboratorio concreto. Su valor
+  principal no es la cifra absoluta sino el patrón cualitativo de
+  disponibilidad diferencial entre estrategias, que se argumenta
+  generalizable en el capítulo~\ref{C:discusion}.
+\end{description}
+
+\section{Estructura del documento}
+
+El capítulo~\ref{C:estado_arte} revisa el estado del arte en ransomware,
+estrategias de backup y sistemas \gls{siem}. El
+capítulo~\ref{C:arquitectura} describe la arquitectura del laboratorio y
+las decisiones de diseño. El capítulo~\ref{C:disenyo} detalla el diseño
+experimental y la metodología estadística. El
+capítulo~\ref{C:resultados} presenta y analiza los resultados. El
+capítulo~\ref{C:discusion} discute las implicaciones de los resultados y
+sus limitaciones. El capítulo~\ref{C:conclusiones} concluye el trabajo y
+propone líneas de trabajo futuro.
+
+Los anexos incluyen las reglas Wazuh completas (Anexo~A), la validación
+con Atomic Red Team (Anexo~B) y la estructura del repositorio con
+instrucciones de reproducción (Anexo~C).
+
+\section{Planificación y presupuesto}
+
+\subsection{Metodología de trabajo}
+
+El desarrollo del proyecto siguió un enfoque iterativo de tipo
+incremental, dividido en cuatro hitos verificables en lugar de un modelo
+en cascada puro. Esta decisión responde a la naturaleza experimental del
+trabajo: la definición final de las reglas de detección Wazuh y de los
+umbrales de frecuencia solo pudo cerrarse tras observar el comportamiento
+real del entorno durante la fase de calibración, lo que habría sido
+imposible de anticipar completamente en la fase de diseño.
+
+Los cuatro hitos fueron: (1)~\emph{arquitectura mínima viable}, con los
+cuatro contenedores desplegados y comunicándose correctamente; (2)~
+\emph{instrumentación}, con Wazuh desplegado y las reglas \gls{fim} básicas
+operativas; (3)~\emph{automatización experimental}, con el
+\textit{script} \texttt{experiment\_runner.py} capaz de ejecutar un
+escenario completo de principio a fin sin intervención manual; y
+(4)~\emph{ejecución y análisis}, con las 120~repeticiones completadas y el
+análisis estadístico finalizado. Cada hito se cerró con una prueba de
+regresión manual que verificaba que los hitos anteriores seguían
+funcionando, dado que varios cambios en la configuración de red de Docker
+durante la fase~3 afectaron a la conectividad establecida en la fase~1.
+
+Como gestión de riesgos, se identificaron dos riesgos principales al
+inicio del proyecto: la posible incompatibilidad de herramientas de
+auditoría del sistema con el kernel del equipo de desarrollo (riesgo que
+se materializó y se documenta en el capítulo~\ref{C:estado_arte}), y la
+posibilidad de que el tiempo de ejecución de las 120~repeticiones excediera
+el margen disponible antes de la fecha de entrega. Este segundo riesgo se
+mitigó anticipando la automatización completa del experimento en la
+fase~3, de modo que la ejecución final pudiera relanzarse sin supervisión
+si fuera necesario repetir alguna celda.
+
+\subsection{Planificación temporal}
+
+Este \pfg tiene asignados 18~créditos ECTS, lo que equivale a
+450~horas de trabajo según el factor de 25~horas por crédito del
+\gls{ects}.
+
+\begin{table}[!h]
+  \centering
+  \caption[Planificación temporal del TFG por fases.]
+          {Planificación temporal del TFG por fases.}
+  \label{tab:planificacion}
+  \begin{tabularx}{\textwidth}{X C{2.5cm} C{2cm}}
+    \toprule
+    \rowcolor{tabla-cabecera}
+    \textcolor{white}{\textbf{Fase}} &
+    \textcolor{white}{\textbf{Período}} &
+    \textcolor{white}{\textbf{Horas}} \\
+    \midrule
+    Revisión bibliográfica y estado del arte & Feb--Mar 2026 & 60 \\
+    Diseño de la arquitectura               & Mar 2026      & 40 \\
+    Implementación del laboratorio           & Mar--Abr 2026 & 90 \\
+    Desarrollo de escenarios y playbooks     & Abr--May 2026 & 50 \\
+    Calibración y validación                 & May 2026      & 40 \\
+    Ejecución del experimento                & Jul 2026      & 20 \\
+    Análisis estadístico y figuras           & Jul 2026      & 30 \\
+    Validación con Atomic Red Team           & Jul 2026      & 20 \\
+    Redacción de la memoria                  & May--Jul 2026 & 80 \\
+    Revisión y entrega                       & Jul 2026      & 20 \\
+    \midrule
+    \textbf{Total}                           & \textbf{22 semanas} & \textbf{450} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{Presupuesto}
+
+El presupuesto contempla recursos humanos, hardware e infraestructura y
+software. Todo el software utilizado es de código abierto y gratuito,
+por lo que el coste de licencias es cero.
+
+\begin{table}[!h]
+  \centering
+  \caption[Resumen del presupuesto total del proyecto.]
+          {Resumen del presupuesto total del proyecto.}
+  \label{tab:presupuesto}
+  \begin{tabularx}{\textwidth}{X C{3cm}}
+    \toprule
+    \rowcolor{tabla-cabecera}
+    \textcolor{white}{\textbf{Categoría}} &
+    \textcolor{white}{\textbf{Coste (€)}} \\
+    \midrule
+    Recursos humanos (450\,h a 25\,€/h + 10\,h tutor) & 11.850,00 \\
+    Hardware e infraestructura (amortización)           &    401,00 \\
+    Software y licencias                                &      0,00 \\
+    Costes indirectos (15\,\%)                          &  1.837,65 \\
+    \midrule
+    \textbf{Total sin IVA}  & \textbf{14.088,65} \\
+    IVA (21\,\%)            &          2.958,62  \\
+    \midrule
+    \textbf{Total con IVA}  & \textbf{17.047,27} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+El presupuesto total asciende a \textbf{17.047,27~€ con IVA}, cifra que
+refleja el coste real de contratación de un perfil técnico junior en
+ciberseguridad para el desarrollo completo del proyecto.
+
+\end{document}

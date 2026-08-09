@@ -1,0 +1,35 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket",
+                "s3:GetBucketLocation",
+                "s3:GetBucketVersioning",
+                "s3:GetBucketObjectLockConfiguration"
+            ],
+            "Resource": "arn:aws:s3:::restic-c"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:GetObjectVersion",
+                "s3:GetObjectRetention"
+            ],
+            "Resource": "arn:aws:s3:::restic-c/*"
+        },
+        {
+            "Effect": "Deny",
+            "Action": [
+                "s3:DeleteObject",
+                "s3:DeleteObjectVersion",
+                "s3:BypassGovernanceRetention",
+                "s3:PutObjectRetention"
+            ],
+            "Resource": "arn:aws:s3:::restic-c/*"
+        }
+    ]
+}
