@@ -23,7 +23,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         adduser \
         lsb-release \
         ca-certificates \
-        libicu72 \
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================================
@@ -36,6 +35,12 @@ RUN apt-get update \
        apt-get install -y ./wazuh-agent_4.7.5-1_amd64.deb \
     && rm wazuh-agent_4.7.5-1_amd64.deb \
     && rm -rf /var/lib/apt/lists/*
+
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+
+# ============================================================
+# Paso 3: Powershell
+# ============================================================
 
 RUN apt-get update && apt-get install -y wget curl ca-certificates \
  && wget https://github.com/PowerShell/PowerShell/releases/download/v7.4.6/powershell-7.4.6-linux-x64.tar.gz -O /tmp/pwsh.tar.gz \
@@ -50,7 +55,7 @@ RUN pwsh -Command "Install-Module -Name powershell-yaml -Force -Scope AllUsers; 
 
 
 # ============================================================
-# Paso 3: usuario y directorios de laboratorio
+# Paso 4: usuario y directorios de laboratorio
 # ============================================================
 RUN useradd -m -s /bin/bash lab && \
     mkdir -p /home/lab/.ssh /lab/scenarios /lab/stolen /var/log/lab && \
@@ -58,7 +63,7 @@ RUN useradd -m -s /bin/bash lab && \
     chmod 700 /home/lab/.ssh
 
 # ============================================================
-# Paso 4: entrypoint
+# Paso 5: entrypoint
 # ============================================================
 COPY scripts/attacker-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
