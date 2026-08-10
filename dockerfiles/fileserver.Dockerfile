@@ -34,7 +34,7 @@ RUN apt-get update \
     && ARCH=$(dpkg --print-architecture) \
     && curl -sO https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.7.5-1_${ARCH}.deb \
     && WAZUH_MANAGER="wazuh-manager" \
-       WAZUH_AGENT_GROUP="lab-backup" \
+       WAZUH_AGENT_GROUP="lab-victims" \
        apt-get install -y ./wazuh-agent_4.7.5-1_${ARCH}.deb \
     && rm wazuh-agent_4.7.5-1_${ARCH}.deb \
     && rm -rf /var/lib/apt/lists/*
