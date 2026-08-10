@@ -56,9 +56,9 @@ RUN useradd -m -s /bin/bash lab && \
 COPY lab-config/samba/smb.conf /etc/samba/smb.conf
 
 # ============================================================
-# Paso 5: reglas auditd
+# Paso 5: reglas auditd (trabajos futuros)
 # ============================================================
-COPY lab-config/wazuh/audit-rules-victim.rules /etc/audit/rules.d/lab.rules
+# COPY lab-config/wazuh/audit-rules-victim.rules /etc/audit/rules.d/lab.rules
 
 # ============================================================
 # Paso 6: scripts helpers
