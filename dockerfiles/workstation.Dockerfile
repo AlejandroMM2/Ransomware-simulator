@@ -28,11 +28,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Paso 2: Wazuh agent
 # ============================================================
 RUN apt-get update \
-    && curl -sO https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.7.5-1_amd64.deb \
+    && ARCH=$(dpkg --print-architecture) \
+    && curl -sO https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.7.5-1_${ARCH}.deb \
     && WAZUH_MANAGER="wazuh-manager" \
        WAZUH_AGENT_GROUP="lab-victims" \
-       apt-get install -y ./wazuh-agent_4.7.5-1_amd64.deb \
-    && rm wazuh-agent_4.7.5-1_amd64.deb \
+       apt-get install -y ./wazuh-agent_4.7.5-1_${ARCH}.deb \
+    && rm wazuh-agent_4.7.5-1_${ARCH}.deb \
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================================
