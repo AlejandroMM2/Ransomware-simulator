@@ -43,10 +43,10 @@ RUN useradd -m -s /bin/bash restic-b && \
     sed -i 's/#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
 
 # ============================================================
-# Paso 4: reglas auditd para vigilar el repo
+# Paso 4: reglas auditd para vigilar el repo (trabajos futuros)
 # ============================================================
-RUN mkdir -p /etc/audit/rules.d
-COPY lab-config/wazuh/audit-rules-backup.rules /etc/audit/rules.d/lab.rules
+# RUN mkdir -p /etc/audit/rules.d
+# COPY lab-config/wazuh/audit-rules-backup.rules /etc/audit/rules.d/lab.rules
 
 # ============================================================
 # Paso 5: entrypoint
