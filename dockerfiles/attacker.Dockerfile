@@ -44,11 +44,18 @@ ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
 # ============================================================
 
 RUN apt-get update && apt-get install -y wget curl ca-certificates \
- && wget https://github.com/PowerShell/PowerShell/releases/download/v7.4.6/powershell-7.4.6-linux-x64.tar.gz -O /tmp/pwsh.tar.gz \
- && mkdir -p /opt/microsoft/powershell/7 \
- && tar zxf /tmp/pwsh.tar.gz -C /opt/microsoft/powershell/7 \
- && ln -s /opt/microsoft/powershell/7/pwsh /usr/bin/pwsh \
- && rm /tmp/pwsh.tar.gz
+    && ARCH=$(dpkg --print-architecture) \
+    && case "$ARCH" in \
+         amd64) PWSH_ARCH="x64" ;; \
+         arm64) PWSH_ARCH="arm64" ;; \
+         *) echo "Arquitectura no soportada: $ARCH" && exit 1 ;; \
+       esac \
+    && wget https://github.com/PowerShell/PowerShell/releases/download/v7.4.6/powershell-7.4.6-linux-${PWSH_ARCH}.tar.gz \
+    && mkdir -p /opt/microsoft/powershell/7 \
+    && tar zxf powershell-7.4.6-linux-${PWSH_ARCH}.tar.gz -C /opt/microsoft/powershell/7 \
+    && chmod +x /opt/microsoft/powershell/7/pwsh \
+    && ln -s /opt/microsoft/powershell/7/pwsh /usr/bin/pwsh \
+    && rm powershell-7.4.6-linux-${PWSH_ARCH}.tar.gz
 
 RUN pwsh -Command "Install-Module -Name powershell-yaml -Force -Scope AllUsers; \
     IEX (IWR 'https://raw.githubusercontent.com/redcanaryco/invoke-atomicredteam/master/install-atomicredteam.ps1' -UseBasicParsing); \
