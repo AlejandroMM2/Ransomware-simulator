@@ -51,7 +51,7 @@ RUN useradd -m -s /bin/bash lab && \
 # ============================================================
 # Paso 4: reglas auditd
 # ============================================================
-COPY lab-config/wazuh/audit-rules-victim.rules /etc/audit/rules.d/lab.rules
+# COPY lab-config/wazuh/audit-rules-victim.rules /etc/audit/rules.d/lab.rules
 
 # ============================================================
 # Paso 5: scripts
