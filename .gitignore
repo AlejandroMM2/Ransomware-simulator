@@ -1,3 +1,6 @@
+# Fichero de variables de entorno
+.env
+
 # Datos experimentales (guardar en /pfg/backups separadamente)
 results/raw_*.csv
 results/figura*.png
