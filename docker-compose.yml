@@ -160,7 +160,6 @@ services:
       context: .
       dockerfile: dockerfiles/fileserver.Dockerfile
     container_name: fileserver
-    privileged: true
     restart: unless-stopped
     hostname: fileserver
     depends_on:
@@ -169,9 +168,6 @@ services:
     networks:
       lab-net:
         ipv4_address: 172.20.0.10
-    cap_add:
-      - AUDIT_CONTROL
-      - AUDIT_READ
     volumes:
       - labprueba-fs:/opt/labprueba
       - ./lab-config/ssh-keys:/etc/ssh-keys:ro
@@ -189,7 +185,6 @@ services:
       context: .
       dockerfile: dockerfiles/workstation.Dockerfile
     container_name: workstation
-    privileged: true
     restart: unless-stopped
     hostname: workstation
     depends_on:
@@ -198,9 +193,6 @@ services:
     networks:
       lab-net:
         ipv4_address: 172.20.0.11
-    cap_add:
-      - AUDIT_CONTROL
-      - AUDIT_READ
     volumes:
       - labprueba-ws:/home/lab/labprueba
       - ./lab-config/ssh-keys:/etc/ssh-keys:ro
@@ -217,7 +209,6 @@ services:
       context: .
       dockerfile: dockerfiles/attacker.Dockerfile
     container_name: attacker
-    privileged: true
     restart: unless-stopped
     hostname: attacker
     depends_on:
@@ -243,7 +234,6 @@ services:
       context: .
       dockerfile: dockerfiles/restic-sftp.Dockerfile
     container_name: restic-sftp
-    privileged: true
     restart: unless-stopped
     hostname: restic-sftp
     depends_on:
@@ -252,9 +242,6 @@ services:
     networks:
       lab-net:
         ipv4_address: 172.20.0.41
-    cap_add:
-      - AUDIT_CONTROL
-      - AUDIT_READ
     volumes:
       - restic-sftp-data:/srv/backups
       - ./lab-config/ssh-keys:/etc/ssh-keys:ro

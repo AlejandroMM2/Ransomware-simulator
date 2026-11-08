@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         openssh-server \
         samba \
         auditd audispd-plugins \
-        python3 python3-pip \
+        python3 python3-pip python3-cryptography \
         restic \
         rsyslog \
         curl wget \

@@ -17,12 +17,6 @@ TARGET_DIR="${TARGET_DIR:-/opt/labprueba}"
 
 log_event "start" "target=$TARGET_HOST"
 
-# Paso 1: instalar dependencia en la victima (via SSH)
-log_event "install_deps"
-ssh -i /etc/ssh-keys/lab_runner_key -o StrictHostKeyChecking=no \
-    ${TARGET_USER}@${TARGET_HOST} \
-    "sudo pip install cryptography --break-system-packages 2>/dev/null || pip install cryptography --user --break-system-packages" \
-    >> "$LOG" 2>&1
 
 # Paso 2: copiar el cifrador
 log_event "copy_payload"
