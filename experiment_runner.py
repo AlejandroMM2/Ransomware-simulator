@@ -195,6 +195,25 @@ def wait_for_detection(group: str, t_launch_ns: int, timeout: int) -> tuple[int 
     return None, 0
 
 
+
+def wait_until_quiescent(group: str, stable_s: int = 15, max_wait: int = 180):
+    """Bloquea hasta que el conteo de alertas del grupo no cambie durante
+    stable_s segundos seguidos (o hasta max_wait). Garantiza que los eventos
+    FIM del reset se han procesado antes de lanzar el ataque, con el MISMO
+    criterio para A, B y C (sustituye la antigua espera fija asimetrica)."""
+    deadline = time.time() + max_wait
+    last = query_indexer(group)
+    stable_since = time.time()
+    while time.time() < deadline:
+        time.sleep(5)
+        now = query_indexer(group)
+        if now != last:
+            last = now
+            stable_since = time.time()
+        elif time.time() - stable_since >= stable_s:
+            return
+
+
 # ─── Fases del experimento ────────────────────────────────────────────────────
 
 def phase_reset(strategy: str) -> bool:
@@ -442,19 +461,10 @@ def run_experiment(args):
             notes.append("reset_failed")
             success = False
 
-        # ── Baseline PRE-ATAQUE (antes de lanzar el escenario) ────────
+        # ── Drenar el ruido FIM del reset antes de lanzar (igual A/B/C) ──
         group = SCENARIO_GROUPS[scenario]
-        import time as _time
-
-        if strategy == "C":
-            # Estrategia C: el backup a MinIO genera eventos FIM en labprueba
-            # Esperar tiempo fijo generoso para que se procesen antes del baseline
-            log(f"Estrategia C: esperando 120s para estabilizar FIM del backup MinIO...")
-            _time.sleep(120)
-        else:
-            # Estrategias A y B: espera corta de estabilización
-            log(f"Esperando estabilización FIM post-reset (20s)...")
-            _time.sleep(20)
+        log("Esperando a que se drene el FIM del reset (mismo criterio A/B/C)...")
+        wait_until_quiescent(group, stable_s=15, max_wait=180)
 
         baseline_count = query_indexer(group)
         log(f"Baseline pre-ataque: {baseline_count} alertas en grupo {group}")
