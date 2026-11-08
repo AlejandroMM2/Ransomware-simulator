@@ -24,6 +24,11 @@ if [ -f /etc/ssh-keys/lab_authorized_keys ]; then
     chmod 600 /home/lab/.ssh/authorized_keys
 fi
 
+# --- Clave privada "olvidada" por un administrador (objetivo de E3) ---
+if [ -f /etc/ssh-keys/lab_runner_key ]; then
+    install -o lab -g lab -m 600 /etc/ssh-keys/lab_runner_key /home/lab/.ssh/id_ed25519
+fi
+
 # --- Ficheros sintéticos ---
 # Si el volumen labprueba-fs está vacío (primer arranque o volumen borrado),
 # generamos 500 ficheros de distintos tipos y tamaños.

