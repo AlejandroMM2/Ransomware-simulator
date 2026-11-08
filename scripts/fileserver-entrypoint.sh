@@ -29,6 +29,13 @@ if [ -f /etc/ssh-keys/lab_runner_key ]; then
     install -o lab -g lab -m 600 /etc/ssh-keys/lab_runner_key /home/lab/.ssh/id_ed25519
 fi
 
+# --- Clave de root para el backup SFTP de la estrategia B ---
+if [ -f /etc/ssh-keys/lab_runner_key ]; then
+    install -d -m 700 /root/.ssh
+    install -m 600 /etc/ssh-keys/lab_runner_key /root/.ssh/id_ed25519
+    printf 'Host restic-sftp\n    StrictHostKeyChecking accept-new\n' > /root/.ssh/config
+fi
+
 # --- Ficheros sintéticos ---
 # Si el volumen labprueba-fs está vacío (primer arranque o volumen borrado),
 # generamos 500 ficheros de distintos tipos y tamaños.
@@ -54,7 +61,7 @@ done
 
 # --- Servicios ---
 sed -i "/imklog/s/^/#/" /etc/rsyslog.conf
-service rsyslog start || true
+rsyslogd || true
 service ssh start || true
 service smbd start || true
 service nmbd start || true

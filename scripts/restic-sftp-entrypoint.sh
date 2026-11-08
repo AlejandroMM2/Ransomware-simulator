@@ -35,7 +35,7 @@ for i in $(seq 1 30); do
 done
 
 sed -i "/imklog/s/^/#/" /etc/rsyslog.conf
-service rsyslog start || true
+rsyslogd || true
 service ssh start || true
 /var/ossec/bin/wazuh-control start || true
 
