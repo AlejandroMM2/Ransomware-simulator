@@ -35,6 +35,7 @@ import sys
 import time
 import urllib.request
 import ssl
+import random
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -381,27 +382,27 @@ def build_execution_plan(
     strategies: list[str],
     reps: int,
     resume_from: str | None = None,
+    seed: int = 42,
 ) -> list[tuple]:
-    """
-    Genera el plan de ejecución en orden pseudoaleatorio por estrategia
-    para evitar sesgos de orden.
-    Retorna lista de (run_id, scenario, strategy, rep).
-    """
-    plan = []
-    run_num = 1
-    # Orden: estrategia cambia más despacio, escenario más rápido, rep más rápido
-    # Así cada bloque de 40 ejecuciones es una estrategia completa
-    for strategy in strategies:
-        for scenario in scenarios:
-            for rep in range(1, reps + 1):
-                run_id = f"run_{run_num:03d}"
-                plan.append((run_id, scenario, strategy, rep))
-                run_num += 1
+    """Plan en orden ALEATORIO con semilla fija (42) para que la estrategia
+    no quede confundida con el momento de ejecucion. Reproducible: la misma
+    semilla da siempre el mismo orden."""
+    combos = [
+        (scenario, strategy, rep)
+        for strategy in strategies
+        for scenario in scenarios
+        for rep in range(1, reps + 1)
+    ]
+    random.Random(seed).shuffle(combos)
+    plan = [
+        (f"run_{i:03d}", sc, st, rep)
+        for i, (sc, st, rep) in enumerate(combos, start=1)
+    ]
 
     if resume_from:
         try:
             resume_idx = next(i for i, (rid, *_) in enumerate(plan) if rid == resume_from)
-            log(f"Reanudando desde {resume_from} (índice {resume_idx})")
+            log(f"Reanudando desde {resume_from} (indice {resume_idx})")
             plan = plan[resume_idx:]
         except StopIteration:
             log(f"run_id {resume_from} no encontrado en el plan", "ERROR")
