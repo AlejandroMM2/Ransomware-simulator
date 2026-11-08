@@ -49,8 +49,7 @@ services:
       lab-net:
         ipv4_address: 172.20.0.21
     environment:
-      - INDEXER_PASSWORD=admin
-## ${INDEXER_PASSWORD}
+      - INDEXER_PASSWORD=${INDEXER_PASSWORD}
       - bootstrap.memory_lock=true
       - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
     ulimits:
@@ -139,7 +138,7 @@ services:
       lab-net:
         ipv4_address: 172.20.0.22
     ports:
-      - "443:5601"
+      - "127.0.0.1:443:5601"
     environment:
       - INDEXER_USERNAME=admin
       - INDEXER_PASSWORD=${INDEXER_PASSWORD}
