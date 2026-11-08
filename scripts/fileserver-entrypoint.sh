@@ -48,6 +48,8 @@ for i in $(seq 1 30); do
 done
 
 # --- Servicios ---
+sed -i "/imklog/s/^/#/" /etc/rsyslog.conf
+service rsyslog start || true
 service ssh start || true
 service smbd start || true
 service nmbd start || true

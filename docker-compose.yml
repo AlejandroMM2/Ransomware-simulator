@@ -195,6 +195,7 @@ services:
         ipv4_address: 172.20.0.11
     volumes:
       - labprueba-ws:/home/lab/labprueba
+      - ./lab-config/wazuh/ossec_workstation.conf:/var/ossec/etc/ossec.conf:ro
       - ./lab-config/ssh-keys:/etc/ssh-keys:ro
     environment:
       - WAZUH_MANAGER=wazuh-manager
@@ -244,6 +245,7 @@ services:
         ipv4_address: 172.20.0.41
     volumes:
       - restic-sftp-data:/srv/backups
+      - ./lab-config/wazuh/ossec_restic-sftp.conf:/var/ossec/etc/ossec.conf:ro
       - ./lab-config/ssh-keys:/etc/ssh-keys:ro
     environment:
       - WAZUH_MANAGER=wazuh-manager
@@ -268,8 +270,6 @@ services:
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
-      - MINIO_AUDIT_WEBHOOK_ENABLE_local=on
-      - MINIO_AUDIT_WEBHOOK_ENDPOINT_local=file:///var/log/minio/audit.json
     command: server --console-address ":9001" /data
     volumes:
       - minio-data:/data

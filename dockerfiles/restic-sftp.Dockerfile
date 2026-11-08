@@ -10,7 +10,7 @@ ENV TZ=Europe/Madrid
 # Paso 1: paquetes base
 # ============================================================
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        openssh-server \
+        openssh-server rsyslog \
         auditd audispd-plugins \
         curl \
         iputils-ping \

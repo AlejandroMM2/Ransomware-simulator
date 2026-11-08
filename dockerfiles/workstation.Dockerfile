@@ -10,7 +10,7 @@ ENV TZ=Europe/Madrid
 # Paso 1: paquetes base. En lugar de samba, instala cifs-utils para montar recursos compartidos Samba
 # ============================================================
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        openssh-server openssh-client \
+        openssh-server openssh-client rsyslog \
         cifs-utils \
         auditd audispd-plugins \
         python3 python3-pip python3-cryptography \

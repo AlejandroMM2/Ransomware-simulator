@@ -34,6 +34,8 @@ for i in $(seq 1 30); do
     sleep 2
 done
 
+sed -i "/imklog/s/^/#/" /etc/rsyslog.conf
+service rsyslog start || true
 service ssh start || true
 /var/ossec/bin/wazuh-control start || true
 

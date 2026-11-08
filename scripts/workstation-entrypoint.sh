@@ -30,6 +30,8 @@ for i in $(seq 1 30); do
     sleep 2
 done
 
+sed -i "/imklog/s/^/#/" /etc/rsyslog.conf
+service rsyslog start || true
 service ssh start || true
 # auditd falla por capabilities; sin impacto porque usamos FIM
 auditctl -R /etc/audit/rules.d/lab.rules 2>/dev/null || true
