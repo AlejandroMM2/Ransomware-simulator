@@ -148,23 +148,50 @@ def query_indexer(group: str, since_ts_ns: int = 0) -> int:
         return 0
 
 
-def wait_for_detection(group: str, baseline: int, timeout: int) -> tuple[int | None, int]:
-    """
-    Polling al indexer hasta detectar nuevas alertas del grupo.
-    baseline = conteo ANTES del ataque, tomado por phase_detect.
-    Retorna (T_detect_ns, alert_count_nuevo) o (None, 0) si timeout.
-    """
+def query_first_alert_ts(group: str, t_launch_ns: int) -> float | None:
+    """Epoch (s) de la PRIMERA alerta del grupo con timestamp >= t_launch.
+    None si aun no hay ninguna. Usa el instante REAL de la alerta, no el
+    momento en que el polling la descubre."""
+    gte_ms = t_launch_ns // 1_000_000
+    body = json.dumps({
+        "size": 1,
+        "sort": [{"timestamp": {"order": "asc"}}],
+        "query": {"bool": {"filter": [
+            {"term": {"rule.groups": group}},
+            {"range": {"timestamp": {"gte": gte_ms, "format": "epoch_millis"}}},
+        ]}},
+    })
+    cmd = (
+        f"docker exec wazuh-manager curl -sk -u {INDEXER_USER}:{INDEXER_PASS} "
+        f"-H 'Content-Type: application/json' "
+        f"-X POST 'https://wazuh-indexer:9200/wazuh-alerts-*/_search' "
+        f"-d '{body}'"
+    )
+    try:
+        rc, out, err = run(cmd, timeout=15)
+        if rc != 0 or not out.strip():
+            return None
+        hits = json.loads(out).get("hits", {}).get("hits", [])
+        if not hits:
+            return None
+        ts = hits[0]["_source"]["timestamp"]   # 2026-07-24T15:41:42.600+0000
+        ts = ts.replace("Z", "+0000")
+        return datetime.strptime(ts, "%Y-%m-%dT%H:%M:%S.%f%z").timestamp()
+    except Exception as e:
+        log(f"Error consultando timestamp de alerta: {e}", "WARN")
+        return None
+
+
+def wait_for_detection(group: str, t_launch_ns: int, timeout: int) -> tuple[int | None, int]:
+    """Sondea cada 5 s si ya existe una alerta del grupo posterior al ataque.
+    Devuelve (t_detect_ns, 1) con el timestamp REAL de la alerta, o (None, 0).
+    El filtro timestamp>=t_launch excluye por si solo los eventos del reset."""
     deadline = time.time() + timeout
-    poll_interval = 5
-
     while time.time() < deadline:
-        current = query_indexer(group)
-        delta = current - baseline
-        if delta > 0:
-            t_detect = ts_ns()
-            return t_detect, delta
-        time.sleep(poll_interval)
-
+        alert_epoch = query_first_alert_ts(group, t_launch_ns)
+        if alert_epoch is not None:
+            return int(alert_epoch * 1e9), 1
+        time.sleep(5)
     return None, 0
 
 
@@ -205,7 +232,7 @@ def phase_detect(scenario: str, t_launch: int, baseline: int = 0) -> tuple[int |
     group = SCENARIO_GROUPS[scenario]
     timeout = DETECT_TIMEOUT[scenario]
     log(f"Esperando detección (grupo={group}, baseline={baseline}, timeout={timeout}s)")
-    t_detect, count = wait_for_detection(group, baseline, timeout)
+    t_detect, count = wait_for_detection(group, t_launch, timeout)
     if t_detect:
         elapsed = (t_detect - t_launch) / 1e9
         log(f"Detección en {elapsed:.1f}s ({count} alertas nuevas)")
