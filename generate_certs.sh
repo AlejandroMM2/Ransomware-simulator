@@ -111,9 +111,9 @@ echo "[5/6] Cert wazuh-dashboard..."
 generate_server_cert "wazuh-dashboard" "$CERT_DIR/wazuh-dashboard" "dashboard"
 
 echo "[6/6] Permisos..."
-sudo chown -R 1000:1000 $CERT_DIR
-sudo chmod -R 500 $CERT_DIR
-sudo find $CERT_DIR -type f -exec chmod 400 {} \;
+chown -R 1000:1000 $CERT_DIR
+chmod -R 500 $CERT_DIR
+find $CERT_DIR -type f -exec chmod 400 {} \;
 
 # Limpieza
 rm -f $CERT_DIR/root-ca.srl 2>/dev/null
