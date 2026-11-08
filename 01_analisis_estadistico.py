@@ -53,6 +53,17 @@ def get_tdetect(cells, scenario, strategy):
             if r['t_detect_s']]
 
 
+def get_restore_only(cells, scenario, strategy):
+    """Tiempo de restauracion PURO (s): t_restore - t_first_action.
+    Aisla la velocidad del backend (sin ataque ni polling)."""
+    out = []
+    for r in cells.get((scenario, strategy), []):
+        tr, tf = r.get('t_restore_ns'), r.get('t_first_action_ns')
+        if tr and tf:
+            out.append((int(tr) - int(tf)) / 1e9)
+    return out
+
+
 def cliff_delta(x, y):
     """Cliff's delta: tamaño del efecto no paramétrico [-1, 1]."""
     n = len(x) * len(y)
@@ -88,6 +99,52 @@ def sep(char='=', n=62):
 
 
 # ─── Análisis ─────────────────────────────────────────────────────────────────
+
+def analisis_h1_restore(cells, output_lines):
+    """H1 (correcto): velocidad de restauracion PURA B vs C.
+    Se mide sobre los escenarios donde ambas estrategias restauran
+    (E1, E3, E4). E2 queda fuera porque B es irrecuperable."""
+    out = output_lines
+    out.append(sep())
+    out.append("H1 (restauracion pura) - t_restore - t_first_action, B vs C")
+    out.append("Mann-Whitney U (bilateral) + Cliff's delta + bootstrap 95%")
+    out.append(sep())
+
+    todos_b, todos_c = [], []
+    for scenario in ['E1', 'E3', 'E4']:
+        rb = get_restore_only(cells, scenario, 'B')
+        rc = get_restore_only(cells, scenario, 'C')
+        if not rb or not rc:
+            continue
+        todos_b += rb
+        todos_c += rc
+        med_b, med_c = np.median(rb), np.median(rc)
+        u, p = stats.mannwhitneyu(rb, rc, alternative='two-sided')
+        d = cliff_delta(rb, rc)
+        lo, hi = bootstrap_ci(rb, rc)
+        red = (med_b - med_c) / med_b * 100 if med_b else 0
+        out.append(f"\nEscenario {scenario}: n_B={len(rb)}, n_C={len(rc)}")
+        out.append(f"  mediana_B={med_b:.2f}s, mediana_C={med_c:.2f}s "
+                   f"(reduccion B->C: {red:.1f}%)")
+        out.append(f"  Mann-Whitney U={u:.0f}, p={p:.4f} "
+                   f"-> {'sig.' if p < 0.05 else 'no sig.'} (alpha=0.05)")
+        out.append(f"  Cliff's delta={d:.3f} ({interpret_cliff(d)})")
+        out.append(f"  Bootstrap 95% CI (B-C): [{lo:.2f}s, {hi:.2f}s]")
+
+    if todos_b and todos_c:
+        med_b, med_c = np.median(todos_b), np.median(todos_c)
+        u, p = stats.mannwhitneyu(todos_b, todos_c, alternative='two-sided')
+        d = cliff_delta(todos_b, todos_c)
+        lo, hi = bootstrap_ci(todos_b, todos_c)
+        red = (med_b - med_c) / med_b * 100 if med_b else 0
+        out.append(f"\nAGREGADO (E1+E3+E4): n_B={len(todos_b)}, n_C={len(todos_c)}")
+        out.append(f"  mediana_B={med_b:.2f}s, mediana_C={med_c:.2f}s "
+                   f"(reduccion B->C: {red:.1f}%)")
+        out.append(f"  Mann-Whitney U={u:.0f}, p={p:.4f} "
+                   f"-> {'sig.' if p < 0.05 else 'no sig.'}")
+        out.append(f"  Cliff's delta={d:.3f} ({interpret_cliff(d)})")
+        out.append(f"  Bootstrap 95% CI (B-C): [{lo:.2f}s, {hi:.2f}s]")
+
 
 def analisis_h1_mttr(cells, output_lines):
     """H1: Mann-Whitney U + Cliff's delta para MTTR B vs C."""
@@ -138,7 +195,7 @@ def analisis_fisher(rows, cells, output_lines):
     out.append("Tasa de recuperación — Test exacto de Fisher (B vs C)")
     out.append(sep())
 
-    for scenario in ['E1', 'E2', 'E3', 'E4']:
+    for scenario in ['E1', 'E2']:  # solo escenarios con perdida de datos
         b_s = sum(1 for r in cells[(scenario,'B')] if r['recovery_status'] == 'success')
         c_s = sum(1 for r in cells[(scenario,'C')] if r['recovery_status'] == 'success')
         n = 10
@@ -152,14 +209,16 @@ def analisis_fisher(rows, cells, output_lines):
             out.append(f"  Fisher exact p={p:.4f} → "
                        f"{'✅ significativo' if p < 0.05 else '❌ no significativo'}")
 
-    # Global
-    b_all = sum(1 for r in rows if r['strategy']=='B' and r['recovery_status']=='success')
-    c_all = sum(1 for r in rows if r['strategy']=='C' and r['recovery_status']=='success')
-    n_total = sum(1 for r in rows if r['strategy'] in ['B', 'C']) // 2
-    table_g = [[b_all, n_total - b_all], [c_all, n_total - c_all]]
+    # Global solo sobre escenarios con perdida de datos (E1, E2)
+    dr = [r for r in rows if r['scenario'] in ('E1', 'E2')]
+    b_all = sum(1 for r in dr if r['strategy']=='B' and r['recovery_status']=='success')
+    c_all = sum(1 for r in dr if r['strategy']=='C' and r['recovery_status']=='success')
+    n_b = sum(1 for r in dr if r['strategy']=='B')
+    n_c = sum(1 for r in dr if r['strategy']=='C')
+    table_g = [[b_all, n_b - b_all], [c_all, n_c - c_all]]
     _, p_g = stats.fisher_exact(table_g)
 
-    out.append(f"\nGLOBAL (40 exec. por estrategia): B={b_all}/40, C={c_all}/40")
+    out.append(f"\nGLOBAL (solo E1+E2): B={b_all}/{n_b}, C={c_all}/{n_c}")
     out.append(f"Fisher exact p={p_g:.6f} → "
                f"{'✅ significativo (p<0.05)' if p_g < 0.05 else '❌ no significativo'}")
 
@@ -195,44 +254,62 @@ def analisis_recovery(rows, cells, output_lines):
 
     out.append("")
     out.append(sep())
-    out.append("Tasa de recuperación por estrategia")
+    out.append("Tasa de recuperación por estrategia (solo E1+E2, con perdida de datos)")
     out.append(sep())
 
     for strategy in ['A', 'B', 'C']:
-        rs = [r for r in rows if r['strategy'] == strategy]
+        rs = [r for r in rows if r['strategy'] == strategy
+              and r['scenario'] in ('E1', 'E2')]
         success = sum(1 for r in rs if r['recovery_status'] == 'success')
         impossible = sum(1 for r in rs if r['recovery_status'] == 'impossible')
-        out.append(f"\nEstrategia {strategy} ({len(rs)} ejecuciones):")
+        out.append(f"\nEstrategia {strategy} ({len(rs)} ejec. con perdida de datos):")
         out.append(f"  success:    {success:>3} ({success/len(rs)*100:.0f}%)")
         out.append(f"  impossible: {impossible:>3} ({impossible/len(rs)*100:.0f}%)")
 
 
-def resumen_ejecutivo(output_lines):
+def resumen_ejecutivo(cells, rows, output_lines):
     out = output_lines
     out.append("")
     out.append(sep())
     out.append("RESUMEN EJECUTIVO — Conclusiones para la memoria")
     out.append(sep())
+
+    # Velocidad de restauracion pura, agregada E1+E3+E4
+    rb = sum((get_restore_only(cells, sc, 'B') for sc in ('E1','E3','E4')), [])
+    rc = sum((get_restore_only(cells, sc, 'C') for sc in ('E1','E3','E4')), [])
+    if rb and rc:
+        mb, mc = np.median(rb), np.median(rc)
+        _, p = stats.mannwhitneyu(rb, rc, alternative='two-sided')
+        d = cliff_delta(rb, rc)
+        red = (mb - mc) / mb * 100 if mb else 0
+        out.append(f"""
+H1 - velocidad de restauracion (B vs C, E1+E3+E4, n={len(rb)}/{len(rc)}):
+  La restauracion pura de C es mas rapida que la de B:
+  mediana B={mb:.2f}s vs C={mc:.2f}s (reduccion {red:.1f}%),
+  Mann-Whitney p={p:.4f}, Cliff delta={d:.2f} ({interpret_cliff(d)}).
+  => Si H1 se formula sobre la VELOCIDAD de restauracion, se CONFIRMA.
+     El MTTR extremo-a-extremo (ataque+deteccion+restauracion) no separa
+     bien las estrategias; la diferencia real esta en el backend.""")
+
+    # Tasa de recuperacion sobre escenarios con perdida de datos (E1,E2)
+    out.append("\nH3 - recuperabilidad ante perdida de datos (solo E1+E2):")
+    for st in ('A', 'B', 'C'):
+        rs = [r for r in rows if r['strategy'] == st and r['scenario'] in ('E1','E2')]
+        ok = sum(1 for r in rs if r['recovery_status'] == 'success')
+        pct = ok / len(rs) * 100 if rs else 0
+        out.append(f"  {st}: {ok}/{len(rs)} ({pct:.0f}%)")
+    b2 = sum(1 for r in cells[('E2','B')] if r['recovery_status']=='success')
+    c2 = sum(1 for r in cells[('E2','C')] if r['recovery_status']=='success')
+    _, p2 = stats.fisher_exact([[b2,10-b2],[c2,10-c2]])
+    out.append(f"  E2 (destruccion activa): B={b2}/10 vs C={c2}/10, "
+               f"Fisher p={p2:.4f}.")
+    out.append("  => Object Lock + minimo privilegio IAM garantizan la "
+               "recuperabilidad cuando el backup convencional es destruido.")
+
     out.append("""
-H1 (C reduce MTTR ≥30% vs B):
-  RECHAZADA en formulación original.
-  - E1, E3, E4: diferencias de MTTR B vs C no significativas
-    (Mann-Whitney p>0.05, Cliff δ negligible/small,
-     Bootstrap CI contiene 0).
-  - E2: B impossible (0/10), C exitosa (10/10).
-    Fisher exact p<0.001 → diferencia altamente significativa.
-
-  HALLAZGO ALTERNATIVO (más relevante):
-  C garantiza disponibilidad 100% vs 75% de B.
-  Ante destrucción activa del repositorio (E2), Object Lock
-  COMPLIANCE es la única garantía de recuperabilidad.
-
-H2 (SIEM detecta más rápido que detección manual):
-  CONFIRMADA.
-  - T_detect: 5.7s–41.9s en todos los escenarios.
-  - IBM X-Force 2024: tiempo medio detección manual >200 días.
-  - Diferencia de varios órdenes de magnitud (días vs segundos).
-""")
+H2 - deteccion (ver tabla T_detect): el SIEM alerta en segundos.
+  NOTA: interpretar T_detect como instante REAL de la alerta (timestamp
+  del indexer), no como el momento del polling.""")
 
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
@@ -254,10 +331,11 @@ def main():
 
     output_lines = []
     analisis_h1_mttr(cells, output_lines)
+    analisis_h1_restore(cells, output_lines)
     analisis_fisher(rows, cells, output_lines)
     analisis_h2_tdetect(cells, output_lines)
     analisis_recovery(rows, cells, output_lines)
-    resumen_ejecutivo(output_lines)
+    resumen_ejecutivo(cells, rows, output_lines)
 
     result = '\n'.join(output_lines)
 

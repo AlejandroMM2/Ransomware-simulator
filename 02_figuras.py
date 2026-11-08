@@ -135,10 +135,13 @@ def figura2_tasa_recuperacion(rows, outdir, dpi):
     rates = []
     counts = []
 
+    # Solo escenarios con perdida de datos (E1, E2): en E3/E4 no se destruye
+    # nada, asi que la "tasa de recuperacion" alli no tiene sentido.
     for strategy in strategies:
-        rs = [r for r in rows if r['strategy'] == strategy]
+        rs = [r for r in rows if r['strategy'] == strategy
+              and r['scenario'] in ('E1', 'E2')]
         s = sum(1 for r in rs if r['recovery_status'] == 'success')
-        rates.append(s / len(rs) * 100)
+        rates.append(s / len(rs) * 100 if rs else 0)
         counts.append((s, len(rs)))
 
     bars = ax.bar(labels, rates,
@@ -156,7 +159,7 @@ def figura2_tasa_recuperacion(rows, outdir, dpi):
     ax.set_ylabel('Tasa de Recuperación Exitosa (%)', fontsize=11)
     ax.set_title(
         'Tasa de Recuperación por Estrategia de Backup\n'
-        '(40 ejecuciones × 4 escenarios por estrategia)',
+        '(solo escenarios con pérdida de datos: E1 y E2, n=20 por estrategia)',
         fontweight='bold', fontsize=12
     )
     ax.set_ylim(0, 120)
