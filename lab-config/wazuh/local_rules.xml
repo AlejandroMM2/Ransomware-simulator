@@ -1,23 +1,26 @@
 <!-- /var/ossec/etc/rules/local_rules.xml -->
-<!-- Reglas custom del laboratorio PFG (basadas en FIM y SSH, sin auditd) -->
+<!-- Reglas custom del laboratorio PFG (FIM + sesion SSH + eventos runner.jsonl) -->
 
 <group name="lab,e1_local,">
 
-  <rule id="100200" level="10" frequency="20" timeframe="60">
-    <if_matched_sid>550</if_matched_sid>
-    <field name="file">^/opt/labprueba/</field>
-    <description>E1: cambio masivo de ficheros en /opt/labprueba (posible cifrado)</description>
+  <!-- Creacion masiva de ficheros en el directorio victima (patron de cifrado) -->
+  <rule id="100200" level="10" frequency="15" timeframe="60">
+    <if_matched_sid>554</if_matched_sid>
+    <field name="file" type="pcre2">^/opt/labprueba/</field>
+    <description>E1: creacion masiva de ficheros en /opt/labprueba (posible cifrado)</description>
   </rule>
 
+  <!-- Payload ejecutable soltado en /tmp (disparo unico, senal temprana) -->
   <rule id="100201" level="12">
     <if_sid>554</if_sid>
     <field name="file" type="pcre2">^/tmp/.*\.(sh|py|pl|bin)$</field>
     <description>E1: fichero ejecutable creado en /tmp (posible payload)</description>
   </rule>
 
-  <rule id="100202" level="11" frequency="10" timeframe="60">
-    <if_matched_group>syscheck</if_matched_group>
-    <field name="file" type="pcre2">\.encrypted$|\.locked$|\.crypto$</field>
+  <!-- Renombrado masivo a extension tipica de ransomware -->
+  <rule id="100202" level="11" frequency="8" timeframe="60">
+    <if_matched_sid>554</if_matched_sid>
+    <field name="file" type="pcre2">\.(encrypted|locked|crypto)$</field>
     <description>E1: renombrado masivo a extension tipica de ransomware</description>
   </rule>
 
@@ -25,10 +28,11 @@
 
 <group name="lab,e2_destroy,">
 
-  <rule id="100211" level="13" frequency="10" timeframe="60">
+  <!-- Borrado masivo en el repositorio de backup SFTP -->
+  <rule id="100211" level="13" frequency="5" timeframe="60">
     <if_matched_sid>553</if_matched_sid>
-    <match>/srv/backups/</match>
-    <description>E2: borrado masivo en repositorio Restic</description>
+    <field name="file" type="pcre2">^/srv/backups/</field>
+    <description>E2: borrado masivo en repositorio Restic (/srv/backups)</description>
   </rule>
 
   <rule id="100212" level="14">
@@ -52,13 +56,13 @@
   <rule id="100220" level="10">
     <if_sid>5715</if_sid>
     <srcip>172.20.0.10</srcip>
-    <description>E3: sesion SSH aceptada desde fileserver</description>
+    <description>E3: sesion SSH aceptada con origen fileserver</description>
   </rule>
 
   <rule id="100222" level="10">
     <if_sid>5715</if_sid>
     <srcip>172.20.0.11</srcip>
-    <description>E3: sesion SSH aceptada desde workstation</description>
+    <description>E3: sesion SSH aceptada con origen workstation</description>
   </rule>
 
 </group>
@@ -68,12 +72,12 @@
   <rule id="100230" level="11">
     <if_sid>5715</if_sid>
     <srcip>172.20.0.30</srcip>
-    <description>E4: sesion SSH aceptada desde el atacante</description>
+    <description>E4: sesion SSH aceptada con origen atacante</description>
   </rule>
 
   <rule id="100231" level="12">
     <if_sid>554</if_sid>
-    <field name="file" type="pcre2">^/tmp/.*\.(tar|tar\.gz|zip|7z)$</field>
+    <field name="file" type="pcre2">^/tmp/.*\.(tar|tar\.gz|tgz|zip|7z)$</field>
     <description>E4: fichero comprimido creado en /tmp (empaquetado para exfil)</description>
   </rule>
 
