@@ -7,14 +7,17 @@
 \section{Síntesis de los hallazgos principales}
 \label{sec:sintesis-hallazgos}
 
-El experimento produce tres hallazgos principales. El primero es el rechazo de H1:
-las diferencias de \gls{mttr} entre las estrategias~B y~C no son estadísticamente
-significativas en los escenarios donde ambas pueden recuperarse (E1, E3, E4). El
-segundo es la confirmación de H3: ante la destrucción activa del repositorio (E2),
-la estrategia~B falla en el 100\,\% de los casos mientras que C mantiene
-disponibilidad total ($p < 0.001$). El tercero es la confirmación de H2: los
-tiempos de detección mediante \gls{siem} (mediana 5.7--41.9~s) son cinco órdenes
-de magnitud inferiores a los reportados para la detección manual.
+El experimento produce tres hallazgos principales. El primero, y central, es la
+confirmación de H3: ante la destrucción activa del repositorio (escenario~E2), la
+estrategia convencional~B falla en el 100\,\% de los casos (0/20) mientras que la
+estrategia inmutable~C mantiene disponibilidad total (20/20), con una diferencia
+estadísticamente muy sólida (test exacto de Fisher, $p < 0.001$). El segundo es la
+confirmación de H1 en su formulación sobre la \emph{velocidad de restauración}: la
+estrategia~C restaura un 39\,\% más rápido que la~B, con una separación total de
+las distribuciones ($\delta$ de Cliff $= 1.0$). El tercero es la confirmación de H2:
+los tiempos de detección mediante \gls{siem} (mediana 0.4--11.2~s) se miden en
+segundos, frente a los tiempos de permanencia (\emph{dwell time}) de meses que la
+industria reporta de forma recurrente para incidentes no instrumentados.
 
 Estos tres hallazgos, tomados en conjunto, forman un argumento coherente para la
 adopción de una estrategia de defensa en profundidad: el almacenamiento inmutable
@@ -24,34 +27,43 @@ seguridad se mide en segundos, no en meses.
 
 \section{Interpretación del hallazgo principal}
 
-\subsection{Por qué el rechazo de H1 no invalida Object Lock}
+\subsection{Velocidad frente a disponibilidad: qué mide realmente H1}
 
-El resultado más importante del experimento no es la diferencia de \gls{mttr}
-entre estrategias B y C, sino la diferencia de disponibilidad ante un atacante que
-destruye activamente las copias. En el escenario~E2, que simula el comportamiento
-documentado de grupos como \emph{Ryuk} o \emph{BlackCat}, la estrategia~B falla
-en el 100\,\% de los casos mientras que la estrategia~C mantiene una tasa de
-éxito del 100\,\%.
+Conviene separar con cuidado dos ventajas distintas de la estrategia~C, porque se
+miden con variables diferentes y tienen implicaciones distintas para la toma de
+decisiones.
 
-El rechazo de H1 en su formulación original no invalida la utilidad práctica de
-Object Lock. La hipótesis planteaba una reducción de \gls{mttr} de al menos el
-30\,\%, un criterio que asume implícitamente que ambas estrategias son igualmente
-capaces de recuperarse. Cuando se incluye el escenario~E2, la comparación más
-correcta no es entre tiempos de recuperación sino entre \emph{tasas de
-recuperabilidad}.
+La primera ventaja es de \emph{velocidad}. Medida de forma aislada
+(sección~\ref{sec:sensibilidad} del capítulo~\ref{C:resultados}), la restauración
+desde el \emph{backend} de MinIO es un 39\,\% más rápida que desde \gls{sftp}
+($\delta = 1.0$). Ahora bien, esta diferencia proviene del \emph{protocolo de
+acceso} al almacenamiento --- S3 frente a \gls{sftp} --- y \textbf{no} del mecanismo
+de inmutabilidad en sí: Object Lock no acelera la restauración, simplemente impide
+el borrado. Por tanto, aunque H1 se confirma, sería un error vender Object Lock
+como una mejora de rendimiento: su aportación de velocidad es, en rigor, una
+propiedad del \emph{backend} S3.
 
-Esta reformulación tiene implicaciones directas para la toma de decisiones en
+La segunda ventaja, y la verdaderamente decisiva, es de \emph{disponibilidad}. El
+resultado más importante del experimento no es que C restaure más rápido, sino que
+C \emph{puede} restaurar cuando B \emph{no puede}. En el escenario~E2, que simula el
+comportamiento documentado de grupos como \emph{Ryuk} o \emph{BlackCat}, la
+estrategia~B falla en el 100\,\% de los casos mientras que la estrategia~C mantiene
+una tasa de éxito del 100\,\%. Esta es una diferencia cualitativa que ninguna
+métrica de velocidad puede capturar.
+
+Esta distinción tiene implicaciones directas para la toma de decisiones en
 organizaciones: la justificación del coste adicional de Object Lock no debe basarse
-en la promesa de recuperaciones más rápidas, sino en la garantía de que la
+en la promesa de recuperaciones más rápidas --- que es un efecto colateral del
+\emph{backend} y no de la inmutabilidad --- sino en la garantía de que la
 recuperación sea posible en absoluto cuando el atacante ha comprometido las
 credenciales de administración.
 
 \subsection{La dicotomía recuperable vs. irrecuperable}
 
-La distinción entre estrategias B y C no es cuantitativa sino cualitativa: no se
-trata de recuperar en 10~s vs. 9~s, sino de recuperar vs. no poder recuperar. Esta
-dicotomía binaria tiene consecuencias directas sobre el modelo de decisión que
-deben usar las organizaciones:
+La distinción entre estrategias B y C no es, en lo esencial, cuantitativa sino
+cualitativa: no se trata de recuperar en 10~s vs. 9~s, sino de recuperar vs. no
+poder recuperar. Esta dicotomía binaria tiene consecuencias directas sobre el
+modelo de decisión que deben usar las organizaciones:
 
 \begin{itemize}
   \item Con la estrategia~B, la pregunta relevante es «¿cuándo fue la última vez
@@ -66,42 +78,61 @@ deben usar las organizaciones:
 
 \section{El escenario E2 como evidencia experimental central}
 
-La celda E2$\times$B (0/10 éxitos) frente a E2$\times$C (10/10 éxitos) constituye
+La celda E2$\times$B (0/20 éxitos) frente a E2$\times$C (20/20 éxitos) constituye
 la evidencia experimental más sólida del trabajo. La destrucción del repositorio
-SFTP es técnicamente sencilla: con acceso \gls{ssh} y las credenciales del usuario
-\texttt{restic-b}, basta ejecutar \texttt{rm -rf /srv/backups/restic-b/*} para
-dejar a la organización sin posibilidad de recuperación. Esta operación tarda menos
-de un segundo y es irreversible.
+\gls{sftp} es técnicamente sencilla: con acceso \gls{ssh} y las credenciales del
+usuario \texttt{restic-b}, basta un borrado recursivo del directorio del
+repositorio para dejar a la organización sin posibilidad de recuperación. Esta
+operación tarda menos de un segundo y es irreversible.
 
-Object Lock COMPLIANCE bloquea la operación equivalente sobre el \emph{bucket} S3
-con un error \texttt{AccessDenied} independientemente de las credenciales
-presentadas. No hay mecanismo de \emph{bypass}: ni el usuario raíz de MinIO ni el
-administrador de la plataforma pueden borrar un objeto en retención COMPLIANCE
-antes de que expire el plazo.
+En la estrategia~C, el intento equivalente sobre el almacenamiento de objetos es
+rechazado, y el \emph{runner} emite un evento estructurado
+(\mbox{\texttt{immutability\_verified}}) que confirma el bloqueo como un hecho
+observado y no supuesto. Ahora bien, es importante precisar en qué consiste
+exactamente la protección, porque es una \textbf{combinación} de dos mecanismos y
+no uno solo:
+
+\begin{itemize}
+  \item \textbf{Object Lock en modo COMPLIANCE} impide que cualquier versión de
+  objeto ya escrita sea modificada o eliminada antes de que expire su periodo de
+  retención, incluso por el usuario raíz de MinIO. Este es el mecanismo que
+  garantiza que los datos de \emph{backup} ya depositados no pueden destruirse.
+
+  \item \textbf{Una política} \gls{iam} \textbf{de mínimo privilegio} sobre el
+  usuario que \restic emplea para escribir (\texttt{restic-c-user}), que
+  \emph{deniega explícitamente} las operaciones de borrado. Este segundo mecanismo
+  es necesario porque Object Lock COMPLIANCE, por sí solo, no impide que una
+  identidad con permiso de escritura coloque \emph{delete markers} sobre los
+  objetos: un \emph{delete marker} no borra las versiones protegidas, pero las
+  oculta y degrada la usabilidad del repositorio. La denegación \gls{iam} cierra
+  ese vector.
+\end{itemize}
+
+Es decir, la inmutabilidad a nivel de objeto y el mínimo privilegio a nivel de
+identidad son complementarios: el primero protege los datos ya escritos y el
+segundo evita que el atacante ensucie el repositorio con marcadores de borrado. La
+tasa de éxito del 100\,\% observada en E2$\times$C es atribuible a la combinación de
+ambos, no a Object Lock en aislamiento.
 
 Esto no significa que la estrategia~C sea completamente invulnerable. Un atacante
 con acceso físico al servidor donde corre MinIO, o con capacidad de modificar el
 binario, podría eludir la protección. Sin embargo, este vector requiere un nivel
 de compromiso de la infraestructura que va más allá del modelo de amenaza del
-ransomware convencional. En un entorno cloud (Amazon S3), el atacante necesitaría
-comprometer la propia infraestructura de Amazon, lo que está fuera del alcance de
-la práctica totalidad de los actores de amenaza conocidos.
+ransomware convencional. En un entorno \emph{cloud} (Amazon S3), el atacante
+necesitaría comprometer la propia infraestructura del proveedor, lo que está fuera
+del alcance de la práctica totalidad de los actores de amenaza conocidos.
 
-\section{Sobre la estrategia de detección con FIM y runner.jsonl}
+\section{Sobre la estrategia de detección con FIM, sesiones SSH y runner.jsonl}
 
 \subsection{Justificación de la alternativa a auditd}
 
-La incompatibilidad de \texttt{auditd} con el \emph{kernel} CachyOS no es un
-defecto sino una característica de seguridad: los parches de endurecimiento
+La incompatibilidad de \texttt{auditd} con el \emph{kernel} del \emph{host} no es
+un defecto sino una característica de seguridad: los parches de endurecimiento
 restringen el acceso al subsistema de auditoría desde contenedores precisamente
-para evitar interferencias maliciosas. La solución adoptada (\gls{fim} más
-\texttt{runner.jsonl}) es representativa de los despliegues de Wazuh en producción
-real, donde \texttt{auditd} raramente se activa por su \emph{overhead}.
-
-La validación en máquina virtual Ubuntu~24.04 (sección~\ref{sec:vm-reproducibilidad})
-confirmó que en entornos con \emph{kernel} estándar, \texttt{auditd} sí está
-disponible desde contenedores privilegiados, lo que podría complementar la detección
-basada en \gls{fim} con instrumentación a nivel de \emph{syscall}.
+para evitar interferencias maliciosas. La solución adoptada --- \gls{fim}, eventos
+de sesión \gls{ssh} del \emph{daemon} \texttt{sshd} y eventos estructurados en
+\texttt{runner.jsonl} --- es representativa de los despliegues de Wazuh en
+producción real, donde \texttt{auditd} raramente se activa por su \emph{overhead}.
 
 \subsection{Ventajas del enfoque basado en eventos estructurados}
 \label{sec:ventajas-runner}
@@ -109,85 +140,91 @@ basada en \gls{fim} con instrumentación a nivel de \emph{syscall}.
 Los eventos \gls{json} del \emph{runner} tienen semántica de alto nivel
 directamente interpretable
 (\mbox{\texttt{immutability\_verified}},
-\mbox{\texttt{lateral\_jump}}),
-generan un volumen manejable (5--15 eventos por ejecución frente a los miles que
-generaría \texttt{auditd}) y son completamente portables entre \emph{kernels}.
+\mbox{\texttt{step3\_exfil\_complete}}),
+generan un volumen manejable (unos pocos eventos por ejecución frente a los miles
+que generaría \texttt{auditd}) y son completamente portables entre \emph{kernels}.
 
 Adicionalmente, los eventos son semánticamente significativos desde el punto de
-vista de la seguridad: el analista de seguridad recibe eventos de negocio que
-describen directamente lo que está ocurriendo, sin necesidad de interpretar
-secuencias de llamadas al sistema de bajo nivel. Esto reduce el tiempo de respuesta
-y facilita la automatización de la respuesta a incidentes.
+vista de la seguridad: el analista recibe eventos de negocio que describen
+directamente lo que está ocurriendo, sin necesidad de interpretar secuencias de
+llamadas al sistema de bajo nivel. Esto reduce el tiempo de respuesta y facilita
+la automatización de la respuesta a incidentes. La misma lógica se aplica a las
+reglas basadas en sesiones \gls{ssh} (reglas 100220, 100222 y 100230, derivadas de
+la regla base~5715 de \texttt{sshd}): disparan de forma binaria ante una conexión
+aceptada desde un origen concreto, sin depender de ningún umbral de frecuencia.
 
 \subsection{Limitaciones de la detección basada en FIM}
 
 La principal limitación del \gls{fim} para la detección de ransomware es la
-dependencia de umbrales de frecuencia. Las reglas 100200 y 100202 requieren que
-se detecten al menos 15 y 10 cambios en directorios monitorizados antes de generar
-una alerta. Un cifrador extremadamente rápido podría completar el cifrado antes de
-superar esos umbrales.
+dependencia de umbrales de frecuencia. Las reglas 100200 y 100202 requieren
+acumular, respectivamente, 15 y 8 cambios en los directorios monitorizados dentro
+de una ventana de 60~segundos antes de generar una alerta. Un cifrador
+extremadamente rápido podría, en teoría, completar su trabajo antes de superar esos
+umbrales; uno extremadamente lento y sigiloso podría mantenerse por debajo de la
+ventana de frecuencia.
 
-En el experimento, las reglas del \emph{runner} (100205, 100206) disparan antes
-que el \gls{fim} en la mayoría de las ejecuciones de E1, precisamente porque el
-evento \texttt{execute} llega al \emph{indexer} antes de que el \gls{fim} haya
-acumulado 15~cambios. Esto indica que en un despliegue real, complementar el
-\gls{fim} con eventos de aplicación es una estrategia más robusta que depender
-exclusivamente del \gls{fim}.
+Ahora bien, en el escenario~E1 esta limitación está mitigada por una señal
+adicional que \emph{no} depende de umbrales: la regla~100201, que dispara ante la
+simple aparición de un fichero ejecutable (\texttt{.sh}, \texttt{.py}, \ldots) en
+\texttt{/tmp}, es decir, ante el \emph{payload} soltado por el atacante, con un
+único evento. En las ejecuciones de E1, esta señal temprana suele estar disponible
+con independencia de cuántos ficheros alcance a cifrar el atacante, lo que indica
+que, en un despliegue real, complementar el \gls{fim} de volumen con detectores de
+\emph{payload} y con eventos de aplicación es una estrategia más robusta que
+depender exclusivamente de los umbrales de frecuencia.
 
-La calibración de los umbrales de frecuencia requiere análisis del perfil de uso
-normal del directorio monitorizado. Un umbral demasiado bajo genera falsos positivos
+La calibración de dichos umbrales requiere análisis del perfil de uso normal del
+directorio monitorizado. Un umbral demasiado bajo genera falsos positivos
 (cualquier operación masiva de ficheros legítima dispara la alerta); un umbral
 demasiado alto puede no detectar cifradores muy rápidos.
 
 \section{Sensibilidad de los resultados a la calibración de umbrales}
 \label{sec:sensibilidad}
 
-Un aspecto que no se ha discutido hasta ahora es en qué medida los resultados
-presentados dependen de los valores concretos de \texttt{frequency} y
-\texttt{timeframe} elegidos para las reglas \gls{fim} descritas en la
-sección~\ref{sec:reglas} del capítulo~\ref{C:disenyo}, y no solo de la
-arquitectura general del sistema de detección.
+Un aspecto que conviene discutir es en qué medida los resultados presentados
+dependen de los valores concretos de \texttt{frequency} y \texttt{timeframe}
+elegidos para las reglas \gls{fim} descritas en la sección~\ref{sec:reglas} del
+capítulo~\ref{C:disenyo}, y no solo de la arquitectura general del sistema de
+detección.
 
-Los umbrales actuales (por ejemplo, 15~eventos en 120~s para la regla~100200,
-o 5~eventos en 30~s para la regla~100211) se calibraron durante la fase~2 del
-proyecto descrita en la sección de metodología del capítulo~\ref{C:introduccion},
-observando el volumen de eventos \gls{fim} generado tanto por la actividad
-legítima del sistema de ficheros como por el cifrador sintético del
-escenario~E1. Un umbral significativamente más alto retrasaría la detección
---- con el riesgo de que un cifrador más rápido que el sintético utilizado
-complete su trabajo antes de que se supere el umbral, como ya se advierte en la
-sección~\ref{sec:ventajas-runner} --- mientras que un umbral más bajo
-incrementaría la sensibilidad a costa de un mayor riesgo de falsos positivos
-ante operaciones legítimas de copia o sincronización masiva de ficheros.
+Los umbrales actuales (por ejemplo, 15~eventos en 60~s para la regla~100200, u
+8~eventos en 60~s para la regla~100202) se calibraron durante la fase de
+preparación del proyecto, observando el volumen de eventos \gls{fim} generado tanto
+por la actividad legítima del sistema de ficheros como por el cifrador sintético
+del escenario~E1. Un umbral significativamente más alto retrasaría la detección
+--- con el riesgo de que un cifrador más rápido que el sintético complete su trabajo
+antes de superarlo --- mientras que un umbral más bajo incrementaría la sensibilidad
+a costa de un mayor riesgo de falsos positivos ante operaciones legítimas de copia
+o sincronización masiva de ficheros.
 
-Es importante señalar que esta sensibilidad afecta únicamente a las reglas
-basadas en \gls{fim} (100200, 100202, 100211), no a las basadas en eventos
-estructurados del \emph{runner} (100205, 100206, 100212--100214, 100220,
-100221, 100230, 100231), que disparan de forma binaria ante la presencia de un
-evento concreto y no dependen de ningún parámetro de calibración. Dado que,
-como se observa en la sección~\ref{sec:ventajas-runner}, las reglas basadas en
-eventos del \emph{runner} son habitualmente las primeras en disparar durante
-las ejecuciones de E1 y E2, el resultado cualitativo central del trabajo ---
-que el escenario~E2 revela una diferencia de disponibilidad, no de velocidad,
-entre estrategias~B y~C --- es en gran medida robusto frente a la calibración
-específica de los umbrales de \gls{fim}: incluso si estos se calibraran de
-forma distinta, la imposibilidad de recuperación de la estrategia~B ante la
-destrucción del repositorio no depende de qué mecanismo la detecte primero,
-sino del resultado binario \texttt{recovery\_status} registrado por el
-\emph{playbook} de recuperación, completamente independiente de la
-instrumentación \gls{siem}. Una caracterización sistemática de esta
-sensibilidad --- por ejemplo, mediante un barrido de valores de
-\texttt{frequency} y \texttt{timeframe} y su efecto sobre $\tdetect$ --- no se
-realizó en este trabajo y se plantea como posible extensión metodológica del
-diseño experimental actual.
+Es importante señalar que esta sensibilidad afecta únicamente a las reglas basadas
+en umbrales de \gls{fim} (100200, 100202 y 100211), no a las reglas que disparan de
+forma binaria ante la presencia de un evento concreto y que no dependen de ningún
+parámetro de calibración: la regla~100201 (aparición del \emph{payload} en
+\texttt{/tmp}), las reglas de sesión \gls{ssh} (100220, 100222, 100230), la de
+creación del archivo comprimido de exfiltración (100231) y las de eventos
+estructurados del \emph{runner} (100212, 100213, 100240).
+
+Más importante aún, el resultado cualitativo central del trabajo --- que el
+escenario~E2 revela una diferencia de \emph{disponibilidad}, no de velocidad, entre
+las estrategias~B y~C --- es completamente robusto frente a la calibración de los
+umbrales de \gls{fim}: la imposibilidad de recuperación de la estrategia~B ante la
+destrucción del repositorio no depende de qué regla la detecte antes, sino del
+resultado binario \texttt{recovery\_status} que registra el \emph{playbook} de
+recuperación, que es \emph{independiente} de toda la instrumentación \gls{siem}. Una
+caracterización sistemática de esta sensibilidad --- por ejemplo, mediante un
+barrido de valores de \texttt{frequency} y \texttt{timeframe} y su efecto sobre
+$\tdetect$ --- no se realizó en este trabajo y se plantea como posible extensión
+metodológica.
 
 \section{Comparación con trabajos relacionados}
 
-Los tiempos de detección observados (5.7--41.9~s) son comparables a los reportados
-por \textcite{almashhadani2019} para análisis de tráfico de red ($< 30$~s), aunque
-las dos aproximaciones son complementarias: el análisis de red detecta el tráfico
-de exfiltración durante la transferencia, mientras que el \gls{fim} detecta la
-preparación del ataque (creación del \emph{script} en \texttt{/tmp}).
+Los tiempos de detección observados (0.4--11.2~s) son comparables, en orden de
+magnitud, a los reportados por \textcite{almashhadani2019} para análisis de tráfico
+de red ($< 30$~s), aunque las dos aproximaciones son complementarias: el análisis
+de red detecta el tráfico de exfiltración durante la transferencia, mientras que el
+\gls{fim} detecta la preparación y ejecución del ataque sobre el sistema de
+ficheros.
 
 Las tasas de detección son consistentes con las de \textcite{moussaileb2021} para
 análisis de acceso a ficheros ($> 95\,\%$). La diferencia fundamental respecto a
@@ -205,7 +242,7 @@ y \textcite{netsecbed2026} --- confirma, tras observar los resultados
 experimentales, la complementariedad ya anticipada en la revisión bibliográfica.
 El \emph{dataset} reproducible de \textcite{gehani2023} sobre comportamiento
 real de binarios de ransomware sería un candidato natural para sustituir el
-cifrador sintético del escenario~E1 en la línea de trabajo futuro TF2
+cifrador sintético del escenario~E1 en la línea de trabajo futuro
 (capítulo~\ref{C:conclusiones}), aportando patrones de acceso a ficheros más
 representativos sin comprometer la reproducibilidad del laboratorio. La
 mitigación activa a nivel de sistema de ficheros de GuardFS~\cite{vonderassen2024}
@@ -219,6 +256,7 @@ excluyentes, en línea con el argumento de defensa en profundidad de la
 sección~\ref{sec:sintesis-hallazgos} de este mismo capítulo.
 
 \section{Limitaciones del estudio}
+\label{sec:limitaciones}
 
 \begin{description}
   \item[Entorno sintético] El laboratorio simula una infraestructura empresarial
@@ -226,15 +264,19 @@ sección~\ref{sec:sintesis-hallazgos} de este mismo capítulo.
   heterogeneidad del \emph{software} instalado y la presencia de antivirus pueden
   afectar tanto a los tiempos de ataque como a los de detección y recuperación.
   En particular, un servidor de ficheros real con terabytes de datos produciría
-  tiempos de cifrado muy superiores a los del laboratorio, lo que podría amplificar
-  las diferencias de \gls{mttr} entre escenarios.
+  tiempos de cifrado y de restauración muy superiores a los del laboratorio, lo que
+  podría amplificar tanto las diferencias de velocidad de restauración como el coste
+  de un escenario de irrecuperabilidad.
 
-  \item[Tamaño de muestra] Diez repeticiones por celda es suficiente para
-  estimaciones descriptivas pero limita la potencia estadística. Con muestras
-  mayores, diferencias de efecto mediano (Cliff~$\delta \approx 0.36$ en E4)
-  podrían alcanzar significación estadística. Para detectar efectos medianos con
-  potencia del 80\,\% se necesitarían al menos 30 repeticiones por celda,
-  lo que supondría 360 ejecuciones y aproximadamente 15 horas de experimento.
+  \item[Tamaño de muestra] Veinte repeticiones por celda ($n = 20$) ofrecen potencia
+  adecuada para los efectos de tamaño mediano a grande que eran esperables en este
+  trabajo, y resultan sobradamente suficientes para los efectos realmente observados
+  en las variables centrales, que son de magnitud máxima: separación total de las
+  distribuciones de velocidad de restauración ($\delta = 1.0$) y tasas de éxito de
+  0\,\% frente a 100\,\% ante la destrucción de copias. La limitación subsiste para
+  efectos de tamaño pequeño, cuya detección con potencia del 80\,\% exigiría
+  tamaños muestrales sensiblemente mayores; dado que ningún efecto central del
+  trabajo cae en ese régimen, su impacto sobre las conclusiones es acotado.
 
   \item[Escenarios simplificados] Los cuatro escenarios implementados no cubren la
   totalidad de las técnicas de MITRE ATT\&CK. En particular, no se simula la fase
@@ -268,12 +310,19 @@ Los resultados tienen implicaciones directas para la arquitectura de sistemas de
 
 \begin{enumerate}
   \item \textbf{Almacenamiento inmutable obligatorio}: implementar al menos una
-  copia con Object Lock COMPLIANCE en una cuenta con credenciales completamente
-  separadas. El coste adicional de MinIO \emph{on-premise} frente a un servidor
-  SFTP convencional es mínimo comparado con el riesgo eliminado.
+  copia con Object Lock COMPLIANCE. El coste adicional de MinIO \emph{on-premise}
+  frente a un servidor SFTP convencional es mínimo comparado con el riesgo
+  eliminado (sección~\ref{sec:coste-beneficio}).
 
-  \item \textbf{SIEM con FIM activo}: desplegar \gls{fim} en tiempo real sobre los
-  directorios críticos. Los tiempos observados (mediana 6--8~s en E1) son
+  \item \textbf{Mínimo privilegio sobre el repositorio inmutable}: Object Lock debe
+  acompañarse de una política \gls{iam} que deniegue el borrado a la identidad de
+  escritura del \emph{backup}. Como se discutió a propósito de E2, la inmutabilidad
+  de objeto sin mínimo privilegio deja abierto el vector de los \emph{delete
+  markers}; es la \emph{combinación} de ambos la que garantiza la recuperabilidad.
+
+  \item \textbf{SIEM con FIM y eventos de sesión activos}: desplegar \gls{fim} en
+  tiempo real sobre los directorios críticos y correlar eventos de sesión \gls{ssh}.
+  Los tiempos observados (sub-segundo en E1, mediana $\approx 0.4$~s) son
   suficientemente cortos para activar procedimientos de contención antes de que el
   cifrado se complete en la mayoría de los escenarios reales.
 
@@ -342,14 +391,13 @@ La conclusión del análisis es que, en términos puramente de precio por gigaby
 almacenado, la estrategia~C no es más cara que la estrategia~B: la diferencia de
 coste relevante no es la de la infraestructura de almacenamiento en sí, sino la
 del \emph{riesgo retenido}. El coste medio de un incidente de ransomware sin
-posibilidad de recuperación, estimado en más de cuatro millones de dólares según
-el informe Veeam~2024~\cite{veeam2024} citado en el
-capítulo~\ref{C:estado_arte}, hace que incluso una sobrecarga operativa moderada
-en la gestión de \gls{api} y en la rigidez de las políticas de retención resulte
-despreciable frente al coste esperado de un escenario equivalente a~E2 sin
-protección. Esta conclusión coincide, además, con el endurecimiento de los
-requisitos de las aseguradoras de ciberriesgo descrito en la
-sección~\ref{sec:ciberseguros} del capítulo~\ref{C:estado_arte}: el mercado
+posibilidad de recuperación, estimado en millones de dólares según el informe
+Veeam~2024~\cite{veeam2024} citado en el capítulo~\ref{C:estado_arte}, hace que
+incluso una sobrecarga operativa moderada en la gestión de \gls{api} y en la
+rigidez de las políticas de retención resulte despreciable frente al coste esperado
+de un escenario equivalente a~E2 sin protección. Esta conclusión coincide, además,
+con el endurecimiento de los requisitos de las aseguradoras de ciberriesgo descrito
+en la sección~\ref{sec:ciberseguros} del capítulo~\ref{C:estado_arte}: el mercado
 asegurador ha llegado independientemente a la misma valoración de que el coste
 marginal del almacenamiento inmutable es bajo en relación con el riesgo que
 elimina.
@@ -367,44 +415,59 @@ capítulo~\ref{C:conclusiones}.
 \section{Notificación en tiempo real mediante Telegram}
 \label{sec:telegram}
 
-Durante el desarrollo del laboratorio se implementó un sistema de notificación en
-tiempo real mediante un bot de Telegram integrado con Wazuh. El \emph{script}
-\texttt{custom-telegram.py}, desplegado en
-\texttt{/var/ossec/\allowbreak{}integrations/} del \emph{manager}, recibe las
-alertas de nivel~$\geq 10$ y las reenvía a un grupo privado de Telegram en formato
-estructurado. La integración se configura en el fichero \texttt{ossec.conf} del
-manager como una integración de tipo \texttt{custom}.
+Para acercar el laboratorio a un flujo de respuesta a incidentes realista, se
+incluye una integración \emph{custom} de Wazuh que reenvía las alertas a un bot de
+Telegram. La integración consiste en un \emph{script} de reenvío
+(\texttt{lab-config/wazuh/integrations/\allowbreak{}custom-telegram.py}) y su
+envoltorio (\texttt{custom-telegram}), que el \emph{manager} ejecuta cuando una
+alerta supera el nivel configurado. El \emph{script} usa exclusivamente la
+biblioteca estándar de Python (sin dependencias externas), de modo que funciona con
+el intérprete embebido de Wazuh. Se configura en \texttt{ossec.conf} del
+\emph{manager} como una integración de tipo \texttt{custom} que filtra por
+\texttt{level~$\geq$~10}:
 
-Los siguientes mensajes se generaron durante el experimento:
-
-\begin{lstlisting}[style=bash, caption={Ejemplos de notificaciones Telegram
-  generadas durante las ejecuciones del experimento.}, label={lst:telegram}]
-Alerta Wazuh -- Nivel 10
-Regla: 100200 -- E1: cambio masivo de ficheros en /opt/labprueba
-Agente: fileserver | Grupos: lab, e1_local
-Timestamp: 2026-07-27T11:20:35.282+0000
-
-Alerta Wazuh -- Nivel 12
-Regla: 100240 -- E4: exfiltracion completada
-Agente: wazuh-manager | Grupos: lab, e4_exfil
-Timestamp: 2026-07-24T19:18:41.536+0000
+\begin{lstlisting}[style=bash, caption={Bloque de configuración de la integración
+  en ossec.conf del manager.}, label={lst:telegram-conf}]
+<integration>
+  <name>custom-telegram</name>
+  <hook_url>https://api.telegram.org/bot<TOKEN>/sendMessage</hook_url>
+  <level>10</level>
+  <alert_format>json</alert_format>
+  <options>{"chat_id":"<CHAT_ID>"}</options>
+</integration>
 \end{lstlisting}
 
-Esta integración resultó especialmente útil durante las cuatro horas de ejecución
-del experimento, permitiendo detectar inmediatamente cualquier anomalía sin
-supervisión continua del terminal. En un entorno de producción, la integración con
-Telegram (o con sistemas de mensajería empresarial como Slack o Microsoft Teams)
-reduciría significativamente el tiempo de respuesta del equipo de seguridad al
-no requerir que el analista esté activamente monitorizando el dashboard.
+El despliegue es opcional y está automatizado de forma idempotente en
+\texttt{scripts/post\_start.sh}: solo se activa si las variables
+\texttt{TELEGRAM\_BOT\_TOKEN} y \texttt{TELEGRAM\_CHAT\_ID} están definidas en el
+fichero \texttt{.env}; en caso contrario, el laboratorio funciona igual sin
+notificaciones. El formato de mensaje que emite el \emph{script} a partir de los
+campos de la alerta es el siguiente:
 
-\section{Validación de reproducibilidad en máquina virtual}
+\begin{lstlisting}[style=bash, caption={Formato de las notificaciones de Telegram
+  generadas por la integración a partir de una alerta Wazuh.}, label={lst:telegram}]
+Alerta Wazuh - Nivel 10
+Regla: 100200 - E1: creacion masiva de ficheros en /opt/labprueba
+Agente: fileserver | Grupos: lab, e1_local
+
+Alerta Wazuh - Nivel 12
+Regla: 100240 - E4: exfiltracion completada
+Agente: wazuh-manager | Grupos: lab, e4_exfil
+\end{lstlisting}
+
+En un entorno de producción, una integración de este tipo (con Telegram o con
+sistemas de mensajería empresarial como Slack o Microsoft Teams) reduce el tiempo
+de respuesta del equipo de seguridad al no requerir que el analista esté
+monitorizando activamente el \emph{dashboard}.
+
+\section{Validación preliminar de reproducibilidad en máquina virtual}
 \label{sec:vm-reproducibilidad}
 
-Con el objetivo de validar la reproducibilidad del laboratorio en un entorno
-diferente al de desarrollo, se realizó una instalación completa en una máquina
-virtual Ubuntu~24.04~LTS desde cero. El proceso siguió exactamente las instrucciones
-del Anexo~C sin ninguna modificación previa, instalando únicamente las herramientas
-mínimas necesarias:
+El laboratorio está diseñado para ser reproducible en cualquier máquina Linux
+moderna con Docker, siguiendo las instrucciones del Anexo~C. Como comprobación
+preliminar de esa portabilidad se realizó un despliegue parcial sobre una máquina
+virtual Ubuntu~24.04~LTS, instalando únicamente las herramientas mínimas
+necesarias:
 
 \begin{lstlisting}[style=bash, caption={Instalación mínima en Ubuntu 24.04 para
   reproducir el laboratorio desde cero.}, label={lst:vm-setup}]
@@ -433,17 +496,16 @@ docker compose up -d
 bash scripts/post_start.sh
 \end{lstlisting}
 
-El \emph{stack} arrancó correctamente en la máquina virtual con \emph{kernel}
-estándar de Ubuntu. La diferencia más notable respecto al entorno de desarrollo
-es que en Ubuntu, \texttt{auditd} sí estuvo disponible desde los contenedores
-privilegiados, lo que podría complementar la detección basada en \gls{fim} con
-instrumentación a nivel de \emph{syscall}.
-
-La ejecución de las reglas de detección y el flujo completo del experimento
-funcionaron de forma idéntica al entorno original, confirmando la portabilidad y
-reproducibilidad del laboratorio documentada en el Anexo~C. Esta validación es
-especialmente relevante porque demuestra que el laboratorio no está vinculado al
-\emph{hardware} ni al sistema operativo del equipo de desarrollo, y puede ejecutarse
-en cualquier máquina Linux moderna con Docker instalado.
+En esta comprobación, los componentes principales del \emph{stack} arrancaron sobre
+el \emph{kernel} estándar de Ubuntu, y se observó una diferencia relevante respecto
+al entorno de desarrollo: en Ubuntu, \texttt{auditd} sí estuvo disponible desde los
+contenedores, lo que abre la posibilidad de complementar la detección basada en
+\gls{fim} con instrumentación a nivel de \emph{syscall}. No obstante, esta
+validación fue \emph{parcial}: no se reejecutó la campaña completa de 240~ejecuciones
+sobre la máquina virtual, por lo que la equivalencia de los resultados numéricos en
+ese entorno no está verificada y se plantea como paso de verificación pendiente. Lo
+que sí confirma esta comprobación es que el arranque del laboratorio y el flujo de
+instalación documentado en el Anexo~C no están vinculados al \emph{hardware} ni al
+sistema operativo del equipo de desarrollo.
 
 \end{document}

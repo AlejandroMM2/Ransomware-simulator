@@ -66,6 +66,64 @@ for GROUP in lab-victims lab-attacker lab-backup; do
     fi
 done
 
+# ─── 3b. Configuracion del manager versionada (antes vivia solo en el volumen) ───
+# El manager debe leer runner.jsonl (eventos de los escenarios) para las reglas
+# 100212/100213/100240. Se anade solo si falta, asi el script sigue siendo idempotente.
+echo ""
+echo "▶ 3b: Configurando la lectura de runner.jsonl en el manager..."
+if docker exec wazuh-manager grep -q "/wazuh-logs/minio/runner.jsonl" /var/ossec/etc/ossec.conf 2>/dev/null; then
+    echo "  ✓ runner.jsonl ya configurado"
+else
+    docker exec wazuh-manager bash -c 'cat >> /var/ossec/etc/ossec.conf <<EOF
+
+<ossec_config>
+  <localfile>
+    <log_format>json</log_format>
+    <location>/wazuh-logs/minio/runner.jsonl</location>
+  </localfile>
+</ossec_config>
+EOF'
+    docker exec wazuh-manager /var/ossec/bin/wazuh-control restart >/dev/null 2>&1
+    echo "  → Anadido y manager reiniciado"
+    sleep 15
+fi
+
+# ─── 3c. Integracion opcional de Telegram (notificaciones en tiempo real) ───
+# Solo se despliega si TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID estan definidos en
+# .env. Si no, se omite y el laboratorio funciona igual. Idempotente.
+echo ""
+echo "▶ 3c: Integración de Telegram (opcional)..."
+TG_TOKEN=$(grep -E '^TELEGRAM_BOT_TOKEN=' .env 2>/dev/null | cut -d= -f2-)
+TG_CHAT=$(grep -E '^TELEGRAM_CHAT_ID=' .env 2>/dev/null | cut -d= -f2-)
+if [ -z "$TG_TOKEN" ] || [ -z "$TG_CHAT" ]; then
+    echo "  → TELEGRAM_BOT_TOKEN/CHAT_ID no definidos en .env; se omite"
+else
+    INTEG_DIR="lab-config/wazuh/integrations"
+    docker cp "$INTEG_DIR/custom-telegram"    wazuh-manager:/var/ossec/integrations/custom-telegram
+    docker cp "$INTEG_DIR/custom-telegram.py" wazuh-manager:/var/ossec/integrations/custom-telegram.py
+    docker exec wazuh-manager chmod 750 /var/ossec/integrations/custom-telegram /var/ossec/integrations/custom-telegram.py
+    docker exec wazuh-manager chown root:wazuh /var/ossec/integrations/custom-telegram /var/ossec/integrations/custom-telegram.py
+    if docker exec wazuh-manager grep -q "custom-telegram" /var/ossec/etc/ossec.conf 2>/dev/null; then
+        echo "  ✓ integración ya configurada en ossec.conf"
+    else
+        printf '%s\n' \
+            "" \
+            "<ossec_config>" \
+            "  <integration>" \
+            "    <name>custom-telegram</name>" \
+            "    <hook_url>https://api.telegram.org/bot${TG_TOKEN}/sendMessage</hook_url>" \
+            "    <level>10</level>" \
+            "    <alert_format>json</alert_format>" \
+            "    <options>{\"chat_id\":\"${TG_CHAT}\"}</options>" \
+            "  </integration>" \
+            "</ossec_config>" \
+            | docker exec -i wazuh-manager bash -c 'cat >> /var/ossec/etc/ossec.conf'
+        docker exec wazuh-manager /var/ossec/bin/wazuh-control restart >/dev/null 2>&1
+        echo "  → integración añadida y manager reiniciado"
+        sleep 15
+    fi
+fi
+
 # ─── 4. Verificar agentes activos ───
 echo ""
 echo "▶ 4/4: Verificando agentes conectados..."
@@ -88,5 +146,3 @@ echo "════════════════════════�
 echo "  ✓ Laboratorio listo para experimentos"
 echo "════════════════════════════════════════════════"
 docker exec wazuh-manager /var/ossec/bin/agent_control -l 2>/dev/null | grep -E "ID:|Active"
-
-
