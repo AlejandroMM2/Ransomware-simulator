@@ -1,0 +1,135 @@
+==============================================================
+H1 — MTTR B vs C por escenario
+Mann-Whitney U (bilateral) + Cliff's delta
+==============================================================
+
+Escenario E1:
+  n_B=20, n_C=20
+  mediana_B=12.84s, mediana_C=12.06s
+  Reducción MTTR (B→C): 6.1%
+  Mann-Whitney U=318, p=0.0015 → ✅ sig. (α=0.05)
+  Cliff's δ=0.590 (large)
+  Bootstrap 95% CI diferencia medianas: [0.76s, 3.39s]
+  CI contiene 0: NO → significativo
+
+Escenario E2:
+  n_B=0, n_C=20
+  Sin datos suficientes para comparar
+  → B: impossible (repositorio destruido en todos los casos)
+
+Escenario E3:
+  n_B=20, n_C=20
+  mediana_B=7.91s, mediana_C=12.05s
+  Reducción MTTR (B→C): -52.4%
+  Mann-Whitney U=180, p=0.5978 → ❌ no sig. (α=0.05)
+  Cliff's δ=-0.100 (negligible)
+  Bootstrap 95% CI diferencia medianas: [-4.16s, 0.82s]
+  CI contiene 0: SÍ → no significativo
+
+Escenario E4:
+  n_B=20, n_C=20
+  mediana_B=10.69s, mediana_C=14.85s
+  Reducción MTTR (B→C): -38.9%
+  Mann-Whitney U=154, p=0.2184 → ❌ no sig. (α=0.05)
+  Cliff's δ=-0.230 (small)
+  Bootstrap 95% CI diferencia medianas: [-4.20s, 0.88s]
+  CI contiene 0: SÍ → no significativo
+==============================================================
+H1 (restauracion pura) - t_restore - t_first_action, B vs C
+Mann-Whitney U (bilateral) + Cliff's delta + bootstrap 95%
+==============================================================
+
+Escenario E1: n_B=20, n_C=20
+  mediana_B=2.20s, mediana_C=1.35s (reduccion B->C: 38.6%)
+  Mann-Whitney U=400, p=0.0000 -> sig. (alpha=0.05)
+  Cliff's delta=1.000 (large)
+  Bootstrap 95% CI (B-C): [0.78s, 0.87s]
+
+Escenario E3: n_B=20, n_C=20
+  mediana_B=2.22s, mediana_C=1.34s (reduccion B->C: 39.7%)
+  Mann-Whitney U=400, p=0.0000 -> sig. (alpha=0.05)
+  Cliff's delta=1.000 (large)
+  Bootstrap 95% CI (B-C): [0.86s, 0.90s]
+
+Escenario E4: n_B=20, n_C=20
+  mediana_B=2.22s, mediana_C=1.33s (reduccion B->C: 39.9%)
+  Mann-Whitney U=400, p=0.0000 -> sig. (alpha=0.05)
+  Cliff's delta=1.000 (large)
+  Bootstrap 95% CI (B-C): [0.87s, 0.90s]
+
+AGREGADO (E1+E3+E4): n_B=60, n_C=60
+  mediana_B=2.22s, mediana_C=1.34s (reduccion B->C: 39.4%)
+  Mann-Whitney U=3600, p=0.0000 -> sig.
+  Cliff's delta=1.000 (large)
+  Bootstrap 95% CI (B-C): [0.86s, 0.88s]
+
+==============================================================
+Tasa de recuperación — Test exacto de Fisher (B vs C)
+==============================================================
+
+E1: B=20/20, C=20/20
+  p=1.0000 (sin diferencia)
+
+E2: B=0/20, C=20/20
+  Fisher exact p=0.0000 → ✅ significativo
+
+GLOBAL (solo E1+E2): B=20/40, C=40/40
+Fisher exact p=0.000000 → ✅ significativo (p<0.05)
+
+==============================================================
+H2 — T_detect por celda experimental
+==============================================================
+
+Celda           n      min      P25      med      P75      max
+────────────────────────────────────────────────────────────
+E1×A          20     0.36     0.36     0.36     0.39     0.45
+E1×B          20     0.36     0.36     0.36     0.40     1.43
+E1×C          20     0.36     0.41     0.48     0.49     0.51
+E2×A          20     9.70    10.95    11.22    11.57    11.97
+E2×B          20     0.70     0.71     0.72     0.76     1.72
+E2×C          20     9.36    10.26    11.09    11.57    11.86
+E3×A          20     0.47     0.91     1.47     1.77     2.40
+E3×B          20     0.48     0.84     1.55     2.09     2.40
+E3×C          20     0.76     1.15     1.44     2.02     2.29
+E4×A          20     1.19     1.62     2.03     2.86     3.06
+E4×B          20     1.18     1.18     1.19     1.21     2.76
+E4×C          20     1.14     1.18     1.19     1.19     1.19
+
+==============================================================
+Tasa de recuperación por estrategia (solo E1+E2, con perdida de datos)
+==============================================================
+
+Estrategia A (40 ejec. con perdida de datos):
+  success:      0 (0%)
+  impossible:  40 (100%)
+
+Estrategia B (40 ejec. con perdida de datos):
+  success:     20 (50%)
+  impossible:  20 (50%)
+
+Estrategia C (40 ejec. con perdida de datos):
+  success:     40 (100%)
+  impossible:   0 (0%)
+
+==============================================================
+RESUMEN EJECUTIVO — Conclusiones para la memoria
+==============================================================
+
+H1 - velocidad de restauracion (B vs C, E1+E3+E4, n=60/60):
+  La restauracion pura de C es mas rapida que la de B:
+  mediana B=2.22s vs C=1.34s (reduccion 39.4%),
+  Mann-Whitney p=0.0000, Cliff delta=1.00 (large).
+  => Si H1 se formula sobre la VELOCIDAD de restauracion, se CONFIRMA.
+     El MTTR extremo-a-extremo (ataque+deteccion+restauracion) no separa
+     bien las estrategias; la diferencia real esta en el backend.
+
+H3 - recuperabilidad ante perdida de datos (solo E1+E2):
+  A: 0/40 (0%)
+  B: 20/40 (50%)
+  C: 40/40 (100%)
+  E2 (destruccion activa): B=0/20 vs C=20/20, Fisher p=0.0000.
+  => Object Lock + minimo privilegio IAM garantizan la recuperabilidad cuando el backup convencional es destruido.
+
+H2 - deteccion (ver tabla T_detect): el SIEM alerta en segundos.
+  NOTA: interpretar T_detect como instante REAL de la alerta (timestamp
+  del indexer), no como el momento del polling.

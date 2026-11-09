@@ -87,7 +87,7 @@ def generar_latex(cells, output_path):
             lines.append(
                 f"{scen_label} & {strategy_names[strategy]} & "
                 f"{td_str} & {mt_str} & "
-                f"{success}/10 & "
+                f"{success}/{len(rs)} & "
                 f"{'/'.join(sorted(statuses))} \\\\"
             )
 
@@ -164,7 +164,7 @@ def imprimir_tabla_consola(cells):
             mt_str = f"{np.median(mt):.1f}" if mt else "—"
 
             print(f"{scenario}×{strategy:<9} {td_str:>13} {mt_str:>12} "
-                  f"{success}/10{' ':>2} {statuses}")
+                  f"{success}/{len(rs)}{' ':>2} {statuses}")
         print()
 
 

@@ -1,0 +1,31 @@
+% Tabla generada automáticamente por 03_tabla_latex.py
+% Incluir en la memoria con: \input{tabla_resultados.tex}
+
+\begin{table}[htbp]
+\centering
+\caption{Resultados experimentales por celda. T\_detect y MTTR expresados como mediana (s). N=10 repeticiones por celda.}
+\label{tab:resultados_experimento}
+\begin{tabular}{llS[table-format=2.1]S[table-format=3.1]cc}
+\toprule
+Escenario & Estrategia & {T\_detect med. (s)} & {MTTR med. (s)} & N éxito & Status \\
+\midrule
+E1 — Cifrado local & A (sin backup) & 0.4 & \textemdash & 0/20 & impossible \\
+ & B (Restic+SFTP) & 0.4 & 12.8 & 20/20 & success \\
+ & C (MinIO ObjLock) & 0.5 & 12.1 & 20/20 & success \\
+\midrule
+E2 — Destrucción copias & A (sin backup) & 11.2 & \textemdash & 0/20 & impossible \\
+\rowcolor{red!10}
+ & B (Restic+SFTP) & 0.7 & \textemdash & 0/20 & impossible \\
+\rowcolor{green!15}
+ & C (MinIO ObjLock) & 11.1 & 16.8 & 20/20 & success \\
+\midrule
+E3 — Mov. lateral & A (sin backup) & 1.5 & \textemdash & 0/20 & impossible \\
+ & B (Restic+SFTP) & 1.5 & 7.9 & 20/20 & success \\
+ & C (MinIO ObjLock) & 1.4 & 12.1 & 20/20 & success \\
+\midrule
+E4 — Exfiltración & A (sin backup) & 2.0 & \textemdash & 0/20 & impossible \\
+ & B (Restic+SFTP) & 1.2 & 10.7 & 20/20 & success \\
+ & C (MinIO ObjLock) & 1.2 & 14.8 & 20/20 & success \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -198,10 +198,10 @@ def analisis_fisher(rows, cells, output_lines):
     for scenario in ['E1', 'E2']:  # solo escenarios con perdida de datos
         b_s = sum(1 for r in cells[(scenario,'B')] if r['recovery_status'] == 'success')
         c_s = sum(1 for r in cells[(scenario,'C')] if r['recovery_status'] == 'success')
-        n = 10
-        table = [[b_s, n - b_s], [c_s, n - c_s]]
+        nb = len(cells[(scenario,'B')]); nc = len(cells[(scenario,'C')])
+        table = [[b_s, nb - b_s], [c_s, nc - c_s]]
 
-        out.append(f"\n{scenario}: B={b_s}/10, C={c_s}/10")
+        out.append(f"\n{scenario}: B={b_s}/{nb}, C={c_s}/{nc}")
         if b_s == c_s:
             out.append("  p=1.0000 (sin diferencia)")
         else:
@@ -300,8 +300,9 @@ H1 - velocidad de restauracion (B vs C, E1+E3+E4, n={len(rb)}/{len(rc)}):
         out.append(f"  {st}: {ok}/{len(rs)} ({pct:.0f}%)")
     b2 = sum(1 for r in cells[('E2','B')] if r['recovery_status']=='success')
     c2 = sum(1 for r in cells[('E2','C')] if r['recovery_status']=='success')
-    _, p2 = stats.fisher_exact([[b2,10-b2],[c2,10-c2]])
-    out.append(f"  E2 (destruccion activa): B={b2}/10 vs C={c2}/10, "
+    n2b=len(cells[('E2','B')]); n2c=len(cells[('E2','C')])
+    _, p2 = stats.fisher_exact([[b2,n2b-b2],[c2,n2c-c2]])
+    out.append(f"  E2 (destruccion activa): B={b2}/{n2b} vs C={c2}/{n2c}, "
                f"Fisher p={p2:.4f}.")
     out.append("  => Object Lock + minimo privilegio IAM garantizan la "
                "recuperabilidad cuando el backup convencional es destruido.")
