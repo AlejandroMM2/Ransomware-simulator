@@ -21,11 +21,11 @@
 \providecommand{\BIBdecl}{\relax}
 \BIBdecl
 
-\bibitem{ibm2024}
+\bibitem{ibmcost2024}
 \BIBentryALTinterwordspacing
-{IBM Security}, ``{X-Force Threat Intelligence Index 2024},'' IBM Corporation,
-  Tech. Rep., 2024. [Online]. Available:
-  \url{https://www.ibm.com/reports/threat-intelligence}
+{IBM Security}, ``{Cost of a Data Breach Report 2024},'' IBM Corporation, Tech.
+  Rep., 2024. [Online]. Available:
+  \url{https://www.ibm.com/reports/data-breach}
 \BIBentrySTDinterwordspacing
 
 \bibitem{veeam2024}
@@ -33,6 +33,13 @@
 {Veeam Software}, ``{Data Protection Trends Report 2024},'' Veeam Software
   Group GmbH, Tech. Rep., 2024. [Online]. Available:
   \url{https://www.veeam.com/reports/data-protection-trends.html}
+\BIBentrySTDinterwordspacing
+
+\bibitem{sophos2024}
+\BIBentryALTinterwordspacing
+{Sophos}, ``{The State of Ransomware 2024},'' Sophos Ltd., Tech. Rep., 2024.
+  [Online]. Available:
+  \url{https://www.sophos.com/en-us/content/state-of-ransomware}
 \BIBentrySTDinterwordspacing
 
 \bibitem{krogh2005}
@@ -71,13 +78,48 @@ R.~Moussaileb, N.~Cuppens-Boulahia, J.-L. Lanet, and H.~Le~Bouder, ``{A Survey
   Computing Surveys}, vol.~54, no.~6, pp. 1--36, 2021.
 
 \bibitem{almashhadani2019}
-M.~Al-Mashhadani and M.~O. Shafiq, ``{A Multi-Classifier Network-Based Crypto
-  Ransomware Detection System},'' in \emph{IEEE Access}, vol.~7, 2019, pp.
-  105\,318--105\,328.
+A.~O. Almashhadani, M.~Kaiiali, S.~Sezer, and P.~O'Kane, ``{A Multi-Classifier
+  Network-Based Crypto Ransomware Detection System: A Case Study of Locky
+  Ransomware},'' \emph{IEEE Access}, vol.~7, pp. 47\,053--47\,067, 2019.
 
 \bibitem{cabaj2016}
 K.~Cabaj and W.~Mazurczyk, ``{Using Software-Defined Networking for Ransomware
   Mitigation: The Case of CryptoWall},'' in \emph{IEEE Network}, vol.~30,
   no.~6, 2016, pp. 14--20.
+
+\bibitem{gehani2023}
+A.~Gehani, A.~Poggio, M.~K. Yadav, S.~Hussain, M.~Muhammad, T.~Neeshat,
+  R.~Batool, O.~Ahmed, and F.~Zaffar, ``{Towards Reproducible Ransomware
+  Analysis},'' in \emph{Proceedings of the 16th Cyber Security Experimentation
+  and Test Workshop (CSET 2023)}, Marina del Rey, CA, USA, 2023.
+
+\bibitem{vonderassen2024}
+J.~von~der Assen, C.~Feng, A.~Huertas~Celdrán, R.~Oleš, G.~Bovet, and
+  B.~Stiller, ``{GuardFS: A File System for Integrated Detection and Mitigation
+  of Linux-based Ransomware},'' \emph{arXiv preprint arXiv:2401.17917}, 2024.
+
+\bibitem{netsecbed2026}
+L.~Bitzki, D.~Kreutz, T.~Heinrich, D.~Fideles, L.~Bertholdo, S.~Quincozes, and
+  A.~Diniz, ``{NetSecBed: A Container-Native Testbed for Reproducible
+  Cybersecurity Experimentation},'' arXiv:2604.04121, 2026.
+
+\bibitem{cliff1993}
+N.~Cliff, ``{Dominance Statistics: Ordinal Analyses to Answer Ordinal
+  Questions},'' \emph{Psychological Bulletin}, vol. 114, no.~3, pp. 494--509,
+  1993.
+
+\bibitem{romano2006}
+J.~Romano, J.~D. Kromrey, J.~Coraggio, and J.~Skowronek, ``{Appropriate
+  Statistics for Ordinal Level Data: Should We Really Be Using t-test and
+  Cohen's d for Evaluating Group Differences on the NSSE and Other Surveys?}''
+  in \emph{Annual Meeting of the Florida Association of Institutional
+  Research}, 2006.
+
+\bibitem{ibm2024}
+\BIBentryALTinterwordspacing
+{IBM Security}, ``{X-Force Threat Intelligence Index 2024},'' IBM Corporation,
+  Tech. Rep., 2024. [Online]. Available:
+  \url{https://www.ibm.com/reports/threat-intelligence}
+\BIBentrySTDinterwordspacing
 
 \end{thebibliography}

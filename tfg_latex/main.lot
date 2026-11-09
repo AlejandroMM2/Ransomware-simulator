@@ -6,23 +6,24 @@
 \contentsline {table}{\numberline {2.1}{\ignorespaces Correspondencia entre escenarios del laboratorio y técnicas MITRE ATT\&CK.}}{16}{table.caption.16}%
 \contentsline {table}{\numberline {2.2}{\ignorespaces Comparación metodológica con los trabajos relacionados.}}{18}{table.caption.17}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {3.1}{\ignorespaces Especificaciones del equipo \textit {host} de experimentación.\relax }}{21}{table.caption.18}%
-\contentsline {table}{\numberline {3.2}{\ignorespaces Contenedores del laboratorio y su dirección IP en la red \texttt {lab-net}.\relax }}{22}{table.caption.19}%
-\contentsline {table}{\numberline {3.3}{\ignorespaces Puertos expuestos al \textit {host} por el laboratorio.\relax }}{27}{table.caption.20}%
+\contentsline {table}{\numberline {3.1}{\ignorespaces Especificaciones del equipo \textit {host} de experimentación.}}{21}{table.caption.18}%
+\contentsline {table}{\numberline {3.2}{\ignorespaces Contenedores del laboratorio y su dirección IP en la red \texttt {lab-net}.}}{23}{table.caption.19}%
+\contentsline {table}{\numberline {3.3}{\ignorespaces Puertos expuestos al \textit {host} por el laboratorio.}}{27}{table.caption.20}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {4.1}{\ignorespaces Reglas Wazuh \emph {custom} del laboratorio PFG.\relax }}{35}{table.caption.21}%
+\contentsline {table}{\numberline {4.1}{\ignorespaces Reglas Wazuh \emph {custom} del laboratorio PFG.}}{36}{table.caption.21}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {5.1}{\ignorespaces Tasa de recuperación por estrategia (40~ejecuciones por estrategia).\relax }}{39}{table.caption.22}%
-\contentsline {table}{\numberline {5.2}{\ignorespaces Estadísticos de $\ensuremath {T_{\text {detect}}}$ por celda experimental (segundos).\relax }}{41}{table.caption.24}%
-\contentsline {table}{\numberline {5.3}{\ignorespaces Estadísticos de \gls {mttr} por celda experimental (segundos).\relax }}{43}{table.caption.26}%
-\contentsline {table}{\numberline {5.4}{\ignorespaces Resultados de Mann-Whitney U y delta de Cliff para MTTR B~vs.~C.\relax }}{43}{table.caption.29}%
-\contentsline {table}{\numberline {5.5}{\ignorespaces Intervalos de confianza \textit {bootstrap} al 95\,\% para la diferencia de medianas MTTR (B$-$C) por escenario.\relax }}{44}{table.caption.30}%
-\contentsline {table}{\numberline {5.6}{\ignorespaces Resultados del test exacto de Fisher para la comparación de tasas de recuperación exitosa B~vs.~C.\relax }}{45}{table.caption.31}%
-\contentsline {table}{\numberline {5.7}{\ignorespaces Resumen del contraste de hipótesis del experimento.\relax }}{45}{table.caption.32}%
+\contentsline {table}{\numberline {5.1}{\ignorespaces Tasa de recuperación por estrategia (40~ejecuciones con pérdida de datos, escenarios E1 y E2, por estrategia).}}{42}{table.caption.22}%
+\contentsline {table}{\numberline {5.2}{\ignorespaces Estadísticos de $\ensuremath {T_{\text {detect}}}$ por celda experimental (segundos).}}{42}{table.caption.24}%
+\contentsline {table}{\numberline {5.3}{\ignorespaces Estadísticos de \gls {mttr} por celda experimental (segundos).}}{45}{table.caption.26}%
+\contentsline {table}{\numberline {5.4}{\ignorespaces Tiempo de restauración puro ($T_{restore}-T_{first\_action}$) por celda (segundos).}}{47}{table.caption.29}%
+\contentsline {table}{\numberline {5.5}{\ignorespaces Mann-Whitney U y delta de Cliff para el \gls {mttr} total B~vs.~C.}}{47}{table.caption.30}%
+\contentsline {table}{\numberline {5.6}{\ignorespaces Mann-Whitney U, delta de Cliff e intervalo \textit {bootstrap} al 95\,\% para la velocidad de restauración B~vs.~C.}}{48}{table.caption.31}%
+\contentsline {table}{\numberline {5.7}{\ignorespaces Test exacto de Fisher para la comparación de tasas de recuperación exitosa B~vs.~C.}}{48}{table.caption.32}%
+\contentsline {table}{\numberline {5.8}{\ignorespaces Resumen del contraste de hipótesis del experimento.}}{48}{table.caption.33}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {6.1}{\ignorespaces Estimación orientativa de coste mensual de almacenamiento para un repositorio de backup de 1\,TB bajo las estrategias B y C.}}{53}{table.caption.33}%
+\contentsline {table}{\numberline {6.1}{\ignorespaces Estimación orientativa de coste mensual de almacenamiento para un repositorio de backup de 1\,TB bajo las estrategias B y C.}}{56}{table.caption.34}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {B.1}{\ignorespaces Resultados de la validación con Atomic Red Team.}}{71}{table.caption.35}%
+\contentsline {table}{\numberline {B.1}{\ignorespaces Cobertura de Atomic Red Team para las técnicas del laboratorio.}}{72}{table.caption.36}%
 \addvspace {10\p@ }

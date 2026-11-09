@@ -15,7 +15,8 @@ estadístico riguroso y validación con técnicas reales de la matriz MITRE ATT\
 
 \subsection{Cumplimiento de los objetivos específicos}
 
-Los siete objetivos específicos definidos en la introducción han sido alcanzados:
+Los objetivos específicos definidos en la introducción se han alcanzado, con el
+alcance acotado que se indica para OE6:
 
 \begin{description}
   \item[OE1 — Laboratorio reproducible] Se ha diseñado e implementado un
@@ -46,15 +47,14 @@ Los siete objetivos específicos definidos en la introducción han sido alcanzad
   han analizado los resultados con Mann-Whitney~U, delta de Cliff, \emph{bootstrap}
   de intervalos de confianza y test exacto de Fisher.
 
-  \item[OE6 — Validación con Atomic Red Team] Las técnicas para las que existen
-  tests atómicos aplicables a Linux (señaladamente el cifrado para impacto, T1486, y
-  la inhibición de la recuperación, T1490) se validaron con Atomic Red Team
-  ejecutado sobre el laboratorio real, confirmando que las reglas detectan técnicas
-  de ataque reales más allá de los escenarios sintéticos. Para las técnicas sin
-  tests atómicos aplicables a Linux en el momento de este trabajo (T1021.004, cuyos
-  atómicos son de Windows/ESXi, y T1041, sin atómicos de Linux), la validación se
-  apoyó en los propios escenarios del laboratorio; el detalle de la cobertura se
-  documenta en el anexo~B.
+  \item[OE6 — Contraste con Atomic Red Team] Se ha analizado la cobertura de
+  Atomic Red Team para las cuatro técnicas estudiadas (anexo~\ref{anx:art}). El
+  resultado acota el alcance de este objetivo: solo T1486 dispone de pruebas
+  atómicas aplicables a Linux, y estas no reproducen el volumen de un cifrado de
+  ransomware; T1490 carece de pruebas para la destrucción de repositorios remotos
+  en Linux, y las de T1021.004 y T1041 están orientadas a Windows/ESXi. Por ello,
+  las cuatro técnicas se ejercitan mediante los escenarios propios del
+  laboratorio, y la validación externa completa se plantea como trabajo futuro.
 
   \item[OE7 — Publicación como software libre] El repositorio completo está
   disponible públicamente en GitHub con documentación suficiente para la
@@ -116,9 +116,9 @@ características principales son:
   \item \textbf{Metodología estadística rigurosa}: pruebas no paramétricas,
   tamaños del efecto e intervalos de confianza \emph{bootstrap}, con orden de
   ejecución aleatorizado.
-  \item \textbf{Validación con herramientas reales}: Atomic Red Team confirma que
-  las reglas detectan técnicas reales de ataque, en las técnicas con tests atómicos
-  aplicables a Linux.
+  \item \textbf{Trazabilidad con MITRE ATT\&CK}: cada escenario y cada regla se
+  asocian a una técnica concreta de la matriz, con un análisis explícito de la
+  cobertura disponible en Atomic Red Team.
 \end{itemize}
 
 \subsection{Reflexión final}
@@ -171,11 +171,11 @@ de este estudio:
   de \emph{active response} de \wazuh (aislamiento de red, bloqueo de procesos)
   y medir el impacto sobre el daño total del ataque.
 
-  \item \textbf{Validación con Atomic Red Team para T1021.004 y T1041 en Linux}:
-  extender la validación con tests atómicos aplicables a Linux para el movimiento
-  lateral por SSH y la exfiltración, cuando estén disponibles, de modo que las
-  cuatro técnicas queden cubiertas con herramientas externas y no solo con los
-  escenarios propios del laboratorio.
+  \item \textbf{Validación externa completa en Linux}: contrastar las cuatro
+  técnicas con pruebas independientes del laboratorio, ya sea con pruebas atómicas
+  de Linux que se incorporen a Atomic Red Team o con un \emph{framework} de
+  emulación alternativo, y con varias repeticiones por técnica para poder aplicar
+  el mismo análisis estadístico que en el experimento principal.
 
   \item \textbf{Detección basada en aprendizaje automático}: entrenar modelos de
   detección de anomalías (Isolation Forest, Autoencoder) sobre los datos de
@@ -275,9 +275,9 @@ cada ejecución que solo existe en memoria durante esa ejecución, garantizando 
 los ficheros cifrados durante el experimento no pueden descifrarse sin la clave de
 esa ejecución específica.
 
-La validación con Atomic Red Team se realizó usando herramientas del propio sistema
-objetivo siguiendo las directrices de uso responsable del \emph{framework}, que
-establece que los tests deben ejecutarse únicamente sobre sistemas propios o con
-autorización explícita.
+Las pruebas exploratorias con Atomic Red Team se realizaron exclusivamente sobre el
+laboratorio propio, siguiendo las directrices de uso responsable del
+\emph{framework}, que establece que los tests deben ejecutarse únicamente sobre
+sistemas propios o con autorización explícita.
 
 \end{document}

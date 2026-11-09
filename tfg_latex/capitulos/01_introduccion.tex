@@ -17,13 +17,13 @@ sofisticadas para explotar esa dependencia.
 Entre todas las amenazas del panorama actual de ciberseguridad, el
 ransomware ocupa un lugar destacado por su capacidad de causar daños
 inmediatos, tangibles y difícilmente reversibles. Según el informe
-IBM X-Force Threat Intelligence Index~2024~\cite{ibm2024}, el tiempo
-medio que transcurre entre la intrusión inicial y la detección supera
-los 200~días en entornos sin instrumentación activa. Las consecuencias
-económicas son devastadoras: el informe de Veeam Data Protection
-Trends~2024~\cite{veeam2024} estima que el coste medio de un ataque de
-ransomware para una organización mediana supera los cuatro millones de
-dólares.
+IBM Cost of a Data Breach~2024~\cite{ibmcost2024}, el ciclo de vida medio
+de una brecha --- el tiempo que transcurre desde que se produce hasta que
+se identifica y contiene --- se situó en 258~días, de los cuales cerca de
+200 corresponden únicamente a su identificación. Las consecuencias
+económicas son devastadoras: ese mismo informe cifra el coste medio global
+de una brecha en 4,88~millones de dólares, cifra que para los incidentes
+con ransomware resulta todavía superior.
 
 El mecanismo de funcionamiento del ransomware moderno sigue un patrón
 conocido como la cadena de ataque o \textit{kill chain}. Tras obtener
@@ -64,9 +64,9 @@ esenciales.
 
 En el ámbito español, el Esquema Nacional de Seguridad (ENS), regulado por
 el Real Decreto 311/2022, establece para las administraciones públicas
-requisitos específicos sobre continuidad del servicio (medida \texttt{mp.cont})
-que incluyen la realización de copias de seguridad periódicas y pruebas de
-restauración documentadas. Ambos marcos comparten un principio de fondo
+requisitos específicos sobre copias de seguridad (medida \texttt{mp.info.6})
+y sobre continuidad del servicio (dimensión \texttt{op.cont}, que incluye
+las pruebas periódicas del plan de continuidad en \texttt{op.cont.3}). Ambos marcos comparten un principio de fondo
 directamente relevante para este \pfg: no basta con \emph{tener} una copia
 de seguridad, sino que debe demostrarse que dicha copia sigue estando
 disponible e íntegra frente a un adversario activo, no solo frente a fallos
@@ -78,9 +78,10 @@ capítulo~\ref{C:discusion}.
 
 Aunque el laboratorio desarrollado no pretende certificar el cumplimiento
 de ninguna normativa concreta, los resultados obtenidos son directamente
-trasladables a la justificación técnica que exige, por ejemplo, la medida
-\texttt{mp.cont.2} (continuidad del servicio) del ENS o el artículo~21 de
-NIS2 relativo a la gestión de la continuidad de negocio.
+trasladables a la justificación técnica que exigen, por ejemplo, las medidas
+\texttt{mp.info.6} (copias de seguridad) y \texttt{op.cont} (continuidad del
+servicio) del ENS, o el artículo~21 de NIS2 relativo a la gestión de la
+continuidad de negocio.
 
 \subsection{Modelo de amenaza}
 \label{sec:modelo-amenaza}
@@ -153,16 +154,16 @@ específicos}:
   relevantes del ransomware moderno según la matriz MITRE ATT\&CK.
 
   \item Instrumentar el entorno con Wazuh \gls{siem} y desarrollar reglas
-  de detección específicas para cada escenario, basadas en \gls{fim} y
-  eventos estructurados de aplicación.
+  de detección específicas para cada escenario, basadas en \gls{fim},
+  eventos de sesión \gls{ssh} y eventos estructurados de aplicación.
 
-  \item Ejecutar un diseño factorial de 120~ejecuciones experimentales y
+  \item Ejecutar un diseño factorial de 240~ejecuciones experimentales y
   analizar los resultados con pruebas estadísticas no paramétricas:
   Mann-Whitney~U, delta de Cliff, \textit{bootstrap} de intervalos de
   confianza y test exacto de Fisher.
 
-  \item Validar las reglas de detección con técnicas reales del
-  \textit{framework} MITRE ATT\&CK mediante Atomic Red Team.
+  \item Analizar la cobertura de las técnicas empleadas en Atomic Red Team
+  y su aplicabilidad para contrastar las reglas de detección.
 
   \item Publicar el laboratorio como software libre con documentación
   suficiente para reproducir los experimentos.
@@ -173,9 +174,9 @@ específicos}:
 El trabajo plantea tres hipótesis:
 
 \begin{description}
-  \item[H1] La estrategia con Object Lock COMPLIANCE reduce el \gls{mttr}
-  en al menos un 30\,\% respecto a la estrategia Restic sobre \gls{sftp}
-  convencional.
+  \item[H1] La estrategia con Object Lock COMPLIANCE reduce el tiempo de
+  restauración de los datos en al menos un 30\,\% respecto a la estrategia
+  Restic sobre \gls{sftp} convencional.
 
   \item[H2] La detección automatizada mediante \gls{siem} permite
   identificar el inicio de un ataque en un tiempo mediano ($\tdetect$)
@@ -246,8 +247,8 @@ capítulo~\ref{C:discusion} discute las implicaciones de los resultados y
 sus limitaciones. El capítulo~\ref{C:conclusiones} concluye el trabajo y
 propone líneas de trabajo futuro.
 
-Los anexos incluyen las reglas Wazuh completas (Anexo~A), la validación
-con Atomic Red Team (Anexo~B) y la estructura del repositorio con
+Los anexos incluyen las reglas Wazuh completas (Anexo~A), el análisis de
+cobertura de Atomic Red Team (Anexo~B) y la estructura del repositorio con
 instrucciones de reproducción (Anexo~C).
 
 \section{Planificación y presupuesto}
@@ -268,7 +269,7 @@ cuatro contenedores desplegados y comunicándose correctamente; (2)~
 operativas; (3)~\emph{automatización experimental}, con el
 \textit{script} \texttt{experiment\_runner.py} capaz de ejecutar un
 escenario completo de principio a fin sin intervención manual; y
-(4)~\emph{ejecución y análisis}, con las 120~repeticiones completadas y el
+(4)~\emph{ejecución y análisis}, con las 240~repeticiones completadas y el
 análisis estadístico finalizado. Cada hito se cerró con una prueba de
 regresión manual que verificaba que los hitos anteriores seguían
 funcionando, dado que varios cambios en la configuración de red de Docker
@@ -278,7 +279,7 @@ Como gestión de riesgos, se identificaron dos riesgos principales al
 inicio del proyecto: la posible incompatibilidad de herramientas de
 auditoría del sistema con el kernel del equipo de desarrollo (riesgo que
 se materializó y se documenta en el capítulo~\ref{C:estado_arte}), y la
-posibilidad de que el tiempo de ejecución de las 120~repeticiones excediera
+posibilidad de que el tiempo de ejecución de las 240~repeticiones excediera
 el margen disponible antes de la fecha de entrega. Este segundo riesgo se
 mitigó anticipando la automatización completa del experimento en la
 fase~3, de modo que la ejecución final pudiera relanzarse sin supervisión
@@ -309,7 +310,7 @@ Este \pfg tiene asignados 18~créditos ECTS, lo que equivale a
     Calibración y validación                 & May 2026      & 40 \\
     Ejecución del experimento                & Jul 2026      & 20 \\
     Análisis estadístico y figuras           & Jul 2026      & 30 \\
-    Validación con Atomic Red Team           & Jul 2026      & 20 \\
+    Contraste con Atomic Red Team            & Jul 2026      & 20 \\
     Redacción de la memoria                  & May--Jul 2026 & 80 \\
     Revisión y entrega                       & Jul 2026      & 20 \\
     \midrule

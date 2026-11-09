@@ -3,7 +3,7 @@
 experiment_runner.py — Orquestador del diseño experimental del PFG
 
 Diseño factorial:
-  4 escenarios × 3 estrategias × 10 repeticiones = 120 ejecuciones
+  4 escenarios × 3 estrategias × 20 repeticiones = 240 ejecuciones
 
 Por cada ejecución:
   1. reset_lab.sh <estrategia>      → estado limpio + backup
@@ -13,7 +13,7 @@ Por cada ejecución:
   5. Escribe fila en raw.csv
 
 Uso:
-  python3 experiment_runner.py                     # 120 ejecuciones completas
+  python3 experiment_runner.py                     # 240 ejecuciones completas
   python3 experiment_runner.py --dry-run           # sin ejecutar, solo imprime plan
   python3 experiment_runner.py --scenario E1       # solo escenario E1
   python3 experiment_runner.py --strategy C        # solo estrategia C
@@ -43,7 +43,7 @@ from pathlib import Path
 
 SCENARIOS = ["E1", "E2", "E3", "E4"]
 STRATEGIES = ["A", "B", "C"]
-REPETITIONS = 10
+REPETITIONS = 20
 
 # Comandos de escenario (ejecutados desde el host via docker exec)
 SCENARIO_CMD = {
@@ -316,7 +316,7 @@ FIELDNAMES = [
     "t_restore_s",          # T_restore en segundos (para análisis)
     "mttr_s",               # T_restore - T_launch en segundos
     "alert_count",
-    "recovery_status",      # success | partial | impossible | error
+    "recovery_status",      # success | partial | impossible | error | skipped
     "restored_files",
     "integrity_match",
     "notes",
@@ -576,7 +576,7 @@ def print_summary(csv_path: Path):
 def parse_args():
     global COOLDOWN
     parser = argparse.ArgumentParser(
-        description="Orquestador del experimento PFG — 120 ejecuciones factorial"
+        description="Orquestador del experimento PFG — 240 ejecuciones factorial"
     )
     parser.add_argument(
         "--scenario", "-s",

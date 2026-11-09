@@ -3,8 +3,8 @@
 %% ============================================================
 \newcommand{\PFGtitulo}{Evaluación de estrategias de backup ante ransomware mediante laboratorio en contenedores con SIEM Wazuh}
 \newcommand{\PFGtitulocorto}{Evaluación impacto ransomware}
-\newcommand{\PFGautor}{Alejandro Martinez Martinez}
-\newcommand{\PFGdirector}{Antonio Robles}
+\newcommand{\PFGautor}{Alejandro Martínez Martínez}
+\newcommand{\PFGdirector}{Antonio Robles Gómez}
 %\newcommand{\PFGcodirector}{Codirector/a del PFG}
 \newcommand{\PFGgrado}{Grado en Ingeniería Informática}
 \newcommand{\PFGmodalidad}{Específica}
@@ -20,6 +20,8 @@
 %% ── Codificación y lengua ────────────────────────────────────
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{xspace}
 \usepackage[spanish,es-tabla]{babel}
 \spanishplainpercent %% El documento ya inserta \,\% manualmente; evita conflicto de glue con babel-spanish
 
@@ -193,12 +195,12 @@
     \null\thispagestyle{empty}\newpage}
 \newcommand\paginablancosin{%
     \paginablanco\addtocounter{page}{-1}}
-\newcommand{\pfg}{Proyecto Fin de Grado }
+\newcommand{\pfg}{Proyecto Fin de Grado\xspace}
 \newcommand\ddfrac[2]{\frac{\displaystyle #1}{\displaystyle #2}}
 
 %% ── Comandos del PFG ─────────────────────────────────────────
-\newcommand{\restic}{Restic}
-\newcommand{\wazuh}{Wazuh}
+\newcommand{\restic}{Restic\xspace}
+\newcommand{\wazuh}{Wazuh\xspace}
 \newcommand{\tdetect}{\ensuremath{T_{\text{detect}}}}
 \newcommand{\tlaunch}{\ensuremath{T_{\text{launch}}}}
 \newcommand{\mttr}{\gls{mttr}}
@@ -302,20 +304,27 @@ SFTP, un sistema de almacenamiento de objetos con Object Lock (MinIO) y un SIEM
 completo (Wazuh~4.7.5 con OpenSearch).
 
 El diseño experimental sigue un esquema factorial de cuatro escenarios de ataque
-por tres estrategias de recuperación y diez repeticiones, totalizando
-120~ejecuciones completamente automatizadas. Los escenarios cubren las tácticas
-más relevantes de la matriz MITRE ATT\&CK: cifrado masivo de ficheros (T1486),
-destrucción activa de copias de seguridad (T1490), movimiento lateral por SSH
-(T1021.004) y exfiltración de datos (T1041).
+por tres estrategias de recuperación y veinte repeticiones, totalizando
+240~ejecuciones completamente automatizadas y ejecutadas en orden aleatorio. Los
+escenarios cubren las tácticas más relevantes de la matriz MITRE ATT\&CK: cifrado
+masivo de ficheros (T1486), destrucción activa de copias de seguridad (T1490),
+movimiento lateral por SSH (T1021.004) y exfiltración de datos (T1041). Las tres
+estrategias evaluadas son: ausencia de copia de seguridad, repositorio Restic sobre
+SFTP convencional y repositorio Restic sobre MinIO con Object Lock COMPLIANCE.
 
-Los resultados muestran que la hipótesis de reducción del MTTR en un 30\,\% no se
-confirma estadísticamente: cuando el repositorio está disponible, ambas estrategias
-restauran con velocidad equivalente. Sin embargo, el escenario de destrucción activa
-revela la diferencia fundamental: la estrategia SFTP falla en el 100\,\% de los
-casos mientras que Object Lock bloquea todos los intentos de borrado y mantiene el
-100\,\% de éxito (Fisher $p < 0.001$). Los tiempos de detección mediante Wazuh
-oscilan entre 5.7 y 41.9~segundos, frente a los más de 200~días reportados para
-la detección manual. El laboratorio se publica como software libre.
+El hallazgo central es de disponibilidad: ante la destrucción activa del
+repositorio, la estrategia SFTP resulta irrecuperable en el 100\,\% de los casos,
+mientras que la combinación de Object Lock y una política de mínimo privilegio
+mantiene una tasa de éxito del 100\,\% (test exacto de Fisher $p < 0.001$). Además,
+cuando se mide de forma aislada la velocidad del \textit{backend}, la restauración
+desde el almacenamiento inmutable resulta un 39\,\% más rápida que desde SFTP, con
+un tamaño del efecto máximo ($\delta$ de Cliff $=1.0$). Los tiempos de detección
+mediante Wazuh, medidos a partir del instante real de la alerta, oscilan entre 0.4
+y 11.2~segundos, muy por debajo del umbral de un minuto y en marcado contraste con
+los tiempos de permanencia de meses reportados por la industria para incidentes no
+instrumentados. El laboratorio, con detección por monitorización de integridad de
+ficheros (FIM) y eventos estructurados, reglas de correlación Wazuh \textit{custom}
+y recuperación verificada por \textit{hash}, se publica como software libre.
 
 \cleardoublepage
 
@@ -337,18 +346,24 @@ workstation, an SFTP backup server, an object storage system with Object Lock
 protection (MinIO), and a complete SIEM stack (Wazuh~4.7.5 with OpenSearch).
 
 The experimental design follows a factorial scheme of four attack scenarios, three
-recovery strategies and ten repetitions, totalling 120~fully automated runs. The
-scenarios cover the most relevant MITRE ATT\&CK tactics: mass file encryption
-(T1486), active destruction of backup copies (T1490), lateral movement via SSH
-(T1021.004), and data exfiltration (T1041).
+recovery strategies and twenty repetitions, totalling 240~fully automated runs
+executed in randomized order. The scenarios cover the most relevant MITRE ATT\&CK
+tactics: mass file encryption (T1486), active destruction of backup copies (T1490),
+lateral movement via SSH (T1021.004), and data exfiltration (T1041). The three
+strategies evaluated are: no backup, a Restic repository over conventional SFTP, and
+a Restic repository over MinIO with COMPLIANCE Object Lock.
 
-Results show that the primary hypothesis of a 30\,\% MTTR reduction is not
-statistically confirmed. However, the active destruction scenario reveals the
-fundamental difference: the SFTP strategy fails in 100\,\% of cases while Object
-Lock blocks all deletion attempts and maintains 100\,\% recovery success
-(Fisher $p < 0.001$). Wazuh detection times range from 5.7 to 41.9~seconds,
-contrasting with over 200~days for manual detection. The laboratory is published
-as free software.
+The central finding concerns availability: under active destruction of the
+repository, the SFTP strategy is unrecoverable in 100\,\% of cases, whereas the
+combination of Object Lock and a least-privilege policy maintains a 100\,\% success
+rate (Fisher exact test $p < 0.001$). In addition, when the backend speed is
+measured in isolation, restoring from immutable storage is 39\,\% faster than from
+SFTP, with a maximal effect size (Cliff's $\delta = 1.0$). Detection times via
+Wazuh, measured from the actual alert instant, range from 0.4 to 11.2~seconds, well
+below the one-minute threshold and in sharp contrast with the months-long dwell
+times reported by the industry for non-instrumented incidents. The laboratory,
+featuring FIM- and event-based detection, custom Wazuh correlation rules and
+hash-verified automated recovery, is published as free software.
 
 \cleardoublepage
 

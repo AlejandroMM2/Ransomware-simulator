@@ -8,7 +8,7 @@ copias de seguridad antes del cifrado, eliminando la principal vía de
 recuperación. Frente a este escenario, la industria propone el
 almacenamiento inmutable como mecanismo de protección, pero la literatura
 académica carece de comparativas experimentales que cuantifiquen su impacto
-real en el tiempo de recuperación.
+real sobre la recuperación.
 
 Este Trabajo de Fin de Grado presenta el diseño, implementación y evaluación
 de un laboratorio de simulación de ransomware basado íntegramente en
@@ -18,33 +18,31 @@ servidor de \textit{backups} SFTP, un sistema de almacenamiento de objetos
 con Object Lock (MinIO) y un SIEM completo (Wazuh~4.7.5 con OpenSearch).
 
 El diseño experimental sigue un esquema factorial de cuatro escenarios de
-ataque por tres estrategias de recuperación y diez repeticiones, totalizando
-120~ejecuciones completamente automatizadas. Los escenarios cubren las
-tácticas más relevantes de la matriz MITRE ATT\&CK: cifrado masivo de
-ficheros (T1486), destrucción activa de copias de seguridad (T1490),
-movimiento lateral por SSH (T1021.004) y exfiltración de datos (T1041).
-Las tres estrategias evaluadas son: ausencia de copia de seguridad,
-repositorio Restic sobre SFTP convencional y repositorio Restic sobre MinIO
-con Object Lock COMPLIANCE activo durante 30~días.
+ataque por tres estrategias de recuperación y veinte repeticiones,
+totalizando 240~ejecuciones completamente automatizadas y ejecutadas en orden
+aleatorio. Los escenarios cubren las tácticas más relevantes de la matriz
+MITRE ATT\&CK: cifrado masivo de ficheros (T1486), destrucción activa de
+copias de seguridad (T1490), movimiento lateral por SSH (T1021.004) y
+exfiltración de datos (T1041). Las tres estrategias evaluadas son: ausencia
+de copia de seguridad, repositorio Restic sobre SFTP convencional y
+repositorio Restic sobre MinIO con Object Lock COMPLIANCE.
 
-Los resultados muestran que la hipótesis principal de reducción del MTTR
-en al menos un 30\,\% no se confirma estadísticamente: cuando el repositorio
-está disponible, ambas estrategias restauran con velocidad equivalente. Sin
-embargo, el escenario de destrucción activa revela la diferencia fundamental:
-la estrategia SFTP falla en el 100\,\% de los casos al quedar el repositorio
-destruido, mientras que Object Lock bloquea todos los intentos de borrado y
-mantiene una tasa de éxito del 100\,\% (test exacto de Fisher $p < 0.001$).
-La ventaja del almacenamiento inmutable no es de velocidad sino de
-disponibilidad garantizada.
+El hallazgo central es de disponibilidad: ante la destrucción activa del
+repositorio, la estrategia SFTP resulta irrecuperable en el 100\,\% de los
+casos, mientras que la combinación de Object Lock y una política de mínimo
+privilegio mantiene una tasa de éxito del 100\,\% (test exacto de Fisher
+$p < 0.001$). Además, cuando se mide de forma aislada la velocidad del
+\textit{backend}, la restauración desde el almacenamiento inmutable resulta
+un 39\,\% más rápida que desde SFTP, con un tamaño del efecto máximo
+($\delta$ de Cliff $=1.0$). Los tiempos de detección mediante Wazuh, medidos
+a partir del instante real de la alerta, oscilan entre 0.4 y 11.2~segundos,
+muy por debajo del umbral de un minuto y en marcado contraste con los tiempos
+de permanencia de meses reportados por la industria para incidentes no
+instrumentados.
 
-Los tiempos de detección mediante Wazuh oscilan entre 5.7 y 41.9~segundos,
-frente a los más de 200~días reportados para la detección manual, confirmando
-que el SIEM transforma cualitativamente la capacidad de respuesta ante
-incidentes.
-
-Como contribución adicional, se valida el laboratorio con el \textit{framework}
-Atomic Red Team, ejecutando las cuatro técnicas ATT\&CK sobre el entorno real.
-Todas son detectadas correctamente por las reglas desarrolladas. El laboratorio
-se publica como software libre para facilitar su reproducción.
+El laboratorio, con detección por monitorización de integridad de ficheros (FIM) y eventos estructurados, reglas de
+correlación Wazuh \textit{custom} y recuperación automatizada verificada por
+\textit{hash}, se publica como software libre para facilitar la reproducción
+independiente de los experimentos.
 
 \end{document}

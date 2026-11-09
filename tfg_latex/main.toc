@@ -48,96 +48,94 @@
 \contentsline {subsection}{\numberline {3.1.1}Hardware del host}{21}{subsection.3.1.1}%
 \contentsline {subsection}{\numberline {3.1.2}Sistema operativo: CachyOS}{21}{subsection.3.1.2}%
 \contentsline {section}{\numberline {3.2}Visión general del diseño}{22}{section.3.2}%
-\contentsline {section}{\numberline {3.3}Descripción de los contenedores}{23}{section.3.3}%
-\contentsline {subsection}{\numberline {3.3.1}Infraestructura SIEM}{23}{subsection.3.3.1}%
+\contentsline {section}{\numberline {3.3}Descripción de los contenedores}{22}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}Infraestructura SIEM}{22}{subsection.3.3.1}%
 \contentsline {subsection}{\numberline {3.3.2}Sistemas víctima}{23}{subsection.3.3.2}%
-\contentsline {subsection}{\numberline {3.3.3}Atacante}{23}{subsection.3.3.3}%
+\contentsline {subsection}{\numberline {3.3.3}Atacante}{24}{subsection.3.3.3}%
 \contentsline {subsection}{\numberline {3.3.4}Almacenamiento de backups}{24}{subsection.3.3.4}%
-\contentsline {section}{\numberline {3.4}Diagrama de red y flujo de comunicación}{24}{section.3.4}%
-\contentsline {section}{\numberline {3.5}Recursos, límites y comprobaciones de estado}{25}{section.3.5}%
+\contentsline {section}{\numberline {3.4}Diagrama de red y flujo de comunicación}{25}{section.3.4}%
+\contentsline {section}{\numberline {3.5}Recursos, límites y comprobaciones de estado}{26}{section.3.5}%
 \contentsline {section}{\numberline {3.6}Mecanismo de comunicación runner.jsonl}{26}{section.3.6}%
-\contentsline {section}{\numberline {3.7}Configuración de red y seguridad}{26}{section.3.7}%
-\contentsline {section}{\numberline {3.8}Estrategia de registro y trazabilidad}{26}{section.3.8}%
+\contentsline {section}{\numberline {3.7}Configuración de red y seguridad}{27}{section.3.7}%
+\contentsline {section}{\numberline {3.8}Estrategia de registro y trazabilidad}{27}{section.3.8}%
 \contentsline {section}{\numberline {3.9}Limitaciones conocidas del entorno}{28}{section.3.9}%
 \contentsline {subsection}{\numberline {3.9.1}Incompatibilidad de auditd con el kernel CachyOS}{28}{subsection.3.9.1}%
 \contentsline {subsection}{\numberline {3.9.2}Imposibilidad de webhook de fichero en MinIO}{28}{subsection.3.9.2}%
-\contentsline {subsection}{\numberline {3.9.3}Gestión de locks de Restic con Object Lock}{28}{subsection.3.9.3}%
-\contentsline {subsection}{\numberline {3.9.4}rsyslog no disponible por defecto}{28}{subsection.3.9.4}%
-\contentsline {section}{\numberline {3.10}Gestión de certificados TLS y PKI interna}{28}{section.3.10}%
-\contentsline {section}{\numberline {3.11}Orden de arranque y dependencias}{29}{section.3.11}%
+\contentsline {subsection}{\numberline {3.9.3}Gestión de locks de Restic con Object Lock}{29}{subsection.3.9.3}%
+\contentsline {subsection}{\numberline {3.9.4}rsyslog no disponible por defecto}{29}{subsection.3.9.4}%
+\contentsline {section}{\numberline {3.10}Gestión de certificados TLS y PKI interna}{29}{section.3.10}%
+\contentsline {section}{\numberline {3.11}Orden de arranque y dependencias}{30}{section.3.11}%
 \contentsline {chapter}{\numberline {4}Diseño experimental y metodología}{31}{chapter.4}%
 \contentsline {section}{\numberline {4.1}Introducción al diseño experimental}{31}{section.4.1}%
 \contentsline {section}{\numberline {4.2}Variables del experimento}{31}{section.4.2}%
 \contentsline {subsection}{\numberline {4.2.1}Variable independiente principal: estrategia de backup}{31}{subsection.4.2.1}%
 \contentsline {subsection}{\numberline {4.2.2}Variable independiente secundaria: escenario de ataque}{32}{subsection.4.2.2}%
 \contentsline {subsection}{\numberline {4.2.3}Variable de control: repetición}{32}{subsection.4.2.3}%
-\contentsline {section}{\numberline {4.3}Variables dependientes}{32}{section.4.3}%
-\contentsline {section}{\numberline {4.4}Hipótesis estadísticas}{33}{section.4.4}%
-\contentsline {section}{\numberline {4.5}Pruebas estadísticas}{33}{section.4.5}%
-\contentsline {section}{\numberline {4.6}Reglas de detección Wazuh}{34}{section.4.6}%
-\contentsline {section}{\numberline {4.7}Procedimiento de cada ejecución}{34}{section.4.7}%
-\contentsline {section}{\numberline {4.8}Control de errores en la automatización}{35}{section.4.8}%
-\contentsline {section}{\numberline {4.9}Validez del diseño experimental}{36}{section.4.9}%
-\contentsline {subsection}{\numberline {4.9.1}Validez interna}{36}{subsection.4.9.1}%
-\contentsline {subsection}{\numberline {4.9.2}Validez externa}{36}{subsection.4.9.2}%
-\contentsline {subsection}{\numberline {4.9.3}Validez de constructo}{37}{subsection.4.9.3}%
-\contentsline {subsection}{\numberline {4.9.4}Validez de conclusión estadística}{37}{subsection.4.9.4}%
-\contentsline {chapter}{\numberline {5}Resultados}{39}{chapter.5}%
-\contentsline {section}{\numberline {5.1}Descripción del experimento ejecutado}{39}{section.5.1}%
-\contentsline {section}{\numberline {5.2}Tasa de recuperación}{39}{section.5.2}%
-\contentsline {section}{\numberline {5.3}Tiempos de detección ($\ensuremath {T_{\text {detect}}}$)}{40}{section.5.3}%
-\contentsline {section}{\numberline {5.4}Tiempos de recuperación (\gls {mttr})}{40}{section.5.4}%
-\contentsline {section}{\numberline {5.5}Análisis estadístico — H1}{41}{section.5.5}%
-\contentsline {section}{\numberline {5.6}Análisis estadístico — H3}{41}{section.5.6}%
-\contentsline {section}{\numberline {5.7}Análisis estadístico — H2}{42}{section.5.7}%
-\contentsline {section}{\numberline {5.8}Síntesis narrativa por escenario}{42}{section.5.8}%
-\contentsline {section}{\numberline {5.9}Verificación de integridad}{44}{section.5.9}%
-\contentsline {section}{\numberline {5.10}Resumen del contraste de hipótesis}{45}{section.5.10}%
-\contentsline {chapter}{\numberline {6}Discusión}{47}{chapter.6}%
-\contentsline {section}{\numberline {6.1}Síntesis de los hallazgos principales}{47}{section.6.1}%
-\contentsline {section}{\numberline {6.2}Interpretación del hallazgo principal}{47}{section.6.2}%
-\contentsline {subsection}{\numberline {6.2.1}Por qué el rechazo de H1 no invalida Object Lock}{47}{subsection.6.2.1}%
-\contentsline {subsection}{\numberline {6.2.2}La dicotomía recuperable vs. irrecuperable}{48}{subsection.6.2.2}%
-\contentsline {section}{\numberline {6.3}El escenario E2 como evidencia experimental central}{48}{section.6.3}%
-\contentsline {section}{\numberline {6.4}Sobre la estrategia de detección con FIM y runner.jsonl}{48}{section.6.4}%
-\contentsline {subsection}{\numberline {6.4.1}Justificación de la alternativa a auditd}{48}{subsection.6.4.1}%
-\contentsline {subsection}{\numberline {6.4.2}Ventajas del enfoque basado en eventos estructurados}{49}{subsection.6.4.2}%
-\contentsline {subsection}{\numberline {6.4.3}Limitaciones de la detección basada en FIM}{49}{subsection.6.4.3}%
-\contentsline {section}{\numberline {6.5}Sensibilidad de los resultados a la calibración de umbrales}{49}{section.6.5}%
-\contentsline {section}{\numberline {6.6}Comparación con trabajos relacionados}{50}{section.6.6}%
-\contentsline {section}{\numberline {6.7}Limitaciones del estudio}{51}{section.6.7}%
-\contentsline {section}{\numberline {6.8}Implicaciones prácticas}{51}{section.6.8}%
-\contentsline {section}{\numberline {6.9}Análisis coste-beneficio de la adopción de Object Lock}{52}{section.6.9}%
-\contentsline {section}{\numberline {6.10}Notificación en tiempo real mediante Telegram}{53}{section.6.10}%
-\contentsline {section}{\numberline {6.11}Validación de reproducibilidad en máquina virtual}{54}{section.6.11}%
-\contentsline {chapter}{\numberline {7}Conclusiones y trabajo futuro}{57}{chapter.7}%
-\contentsline {section}{\numberline {7.1}Conclusiones}{57}{section.7.1}%
-\contentsline {subsection}{\numberline {7.1.1}Cumplimiento de los objetivos específicos}{57}{subsection.7.1.1}%
-\contentsline {subsection}{\numberline {7.1.2}Sobre la hipótesis H1}{58}{subsection.7.1.2}%
-\contentsline {subsection}{\numberline {7.1.3}Sobre la hipótesis H2}{58}{subsection.7.1.3}%
-\contentsline {subsection}{\numberline {7.1.4}Sobre la hipótesis H3}{58}{subsection.7.1.4}%
-\contentsline {subsection}{\numberline {7.1.5}Sobre el laboratorio como contribución}{58}{subsection.7.1.5}%
-\contentsline {subsection}{\numberline {7.1.6}Reflexión final}{59}{subsection.7.1.6}%
-\contentsline {section}{\numberline {7.2}Trabajo futuro}{59}{section.7.2}%
-\contentsline {section}{\numberline {7.3}Difusión y aplicabilidad como recurso docente}{61}{section.7.3}%
-\contentsline {section}{\numberline {7.4}Consideraciones éticas}{61}{section.7.4}%
-\contentsline {chapter}{Bibliograf\'{\i }a}{63}{chapter*.34}%
-\contentsline {chapter}{\numberline {A}Reglas Wazuh completas}{65}{appendix.Alph1}%
-\contentsline {section}{\numberline {A.1}Estructura del fichero}{65}{section.Alph1.1}%
-\contentsline {section}{\numberline {A.2}Reglas del escenario E1 (cifrado local)}{65}{section.Alph1.2}%
-\contentsline {section}{\numberline {A.3}Reglas del escenario E2 (destrucción de copias)}{66}{section.Alph1.3}%
-\contentsline {section}{\numberline {A.4}Reglas del escenario E3 (movimiento lateral)}{67}{section.Alph1.4}%
-\contentsline {section}{\numberline {A.5}Reglas del escenario E4 (exfiltración)}{68}{section.Alph1.5}%
-\contentsline {chapter}{\numberline {B}Validación con Atomic Red Team}{69}{appendix.Alph2}%
-\contentsline {section}{\numberline {B.1}Metodología de validación}{69}{section.Alph2.1}%
-\contentsline {section}{\numberline {B.2}T1486 --- Data Encrypted for Impact}{69}{section.Alph2.2}%
-\contentsline {section}{\numberline {B.3}T1490 --- Inhibit System Recovery}{70}{section.Alph2.3}%
-\contentsline {section}{\numberline {B.4}T1021.004 --- Remote Services: SSH}{70}{section.Alph2.4}%
-\contentsline {section}{\numberline {B.5}T1041 --- Exfiltration Over C2 Channel}{70}{section.Alph2.5}%
-\contentsline {section}{\numberline {B.6}Resumen de resultados}{71}{section.Alph2.6}%
-\contentsline {section}{\numberline {B.7}Limitaciones de la validación}{71}{section.Alph2.7}%
+\contentsline {section}{\numberline {4.3}Variables dependientes}{33}{section.4.3}%
+\contentsline {section}{\numberline {4.4}Hipótesis estadísticas}{34}{section.4.4}%
+\contentsline {section}{\numberline {4.5}Pruebas estadísticas}{34}{section.4.5}%
+\contentsline {section}{\numberline {4.6}Reglas de detección Wazuh}{35}{section.4.6}%
+\contentsline {section}{\numberline {4.7}Procedimiento de cada ejecución}{35}{section.4.7}%
+\contentsline {section}{\numberline {4.8}Control de errores en la automatización}{36}{section.4.8}%
+\contentsline {section}{\numberline {4.9}Validez del diseño experimental}{37}{section.4.9}%
+\contentsline {subsection}{\numberline {4.9.1}Validez interna}{37}{subsection.4.9.1}%
+\contentsline {subsection}{\numberline {4.9.2}Validez externa}{38}{subsection.4.9.2}%
+\contentsline {subsection}{\numberline {4.9.3}Validez de constructo}{38}{subsection.4.9.3}%
+\contentsline {subsection}{\numberline {4.9.4}Validez de conclusión estadística}{38}{subsection.4.9.4}%
+\contentsline {chapter}{\numberline {5}Resultados}{41}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Descripción del experimento ejecutado}{41}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Tasa de recuperación}{41}{section.5.2}%
+\contentsline {section}{\numberline {5.3}Tiempos de detección ($\ensuremath {T_{\text {detect}}}$)}{42}{section.5.3}%
+\contentsline {section}{\numberline {5.4}Tiempos de recuperación (\gls {mttr})}{43}{section.5.4}%
+\contentsline {section}{\numberline {5.5}Velocidad de restauración}{43}{section.5.5}%
+\contentsline {section}{\numberline {5.6}Análisis estadístico — H1}{44}{section.5.6}%
+\contentsline {section}{\numberline {5.7}Análisis estadístico — H3}{45}{section.5.7}%
+\contentsline {section}{\numberline {5.8}Análisis estadístico — H2}{45}{section.5.8}%
+\contentsline {section}{\numberline {5.9}Síntesis narrativa por escenario}{46}{section.5.9}%
+\contentsline {section}{\numberline {5.10}Verificación de integridad}{48}{section.5.10}%
+\contentsline {section}{\numberline {5.11}Resumen del contraste de hipótesis}{48}{section.5.11}%
+\contentsline {chapter}{\numberline {6}Discusión}{49}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Síntesis de los hallazgos principales}{49}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Interpretación del hallazgo principal}{49}{section.6.2}%
+\contentsline {subsection}{\numberline {6.2.1}Velocidad frente a disponibilidad: qué mide realmente H1}{49}{subsection.6.2.1}%
+\contentsline {subsection}{\numberline {6.2.2}La dicotomía recuperable vs. irrecuperable}{50}{subsection.6.2.2}%
+\contentsline {section}{\numberline {6.3}El escenario E2 como evidencia experimental central}{50}{section.6.3}%
+\contentsline {section}{\numberline {6.4}Sobre la estrategia de detección con FIM, sesiones SSH y runner.jsonl}{51}{section.6.4}%
+\contentsline {subsection}{\numberline {6.4.1}Justificación de la alternativa a auditd}{51}{subsection.6.4.1}%
+\contentsline {subsection}{\numberline {6.4.2}Ventajas del enfoque basado en eventos estructurados}{51}{subsection.6.4.2}%
+\contentsline {subsection}{\numberline {6.4.3}Limitaciones de la detección basada en FIM}{52}{subsection.6.4.3}%
+\contentsline {section}{\numberline {6.5}Sensibilidad de los resultados a la calibración de umbrales}{52}{section.6.5}%
+\contentsline {section}{\numberline {6.6}Comparación con trabajos relacionados}{53}{section.6.6}%
+\contentsline {section}{\numberline {6.7}Limitaciones del estudio}{54}{section.6.7}%
+\contentsline {section}{\numberline {6.8}Implicaciones prácticas}{54}{section.6.8}%
+\contentsline {section}{\numberline {6.9}Análisis coste-beneficio de la adopción de Object Lock}{55}{section.6.9}%
+\contentsline {section}{\numberline {6.10}Notificación en tiempo real mediante Telegram}{56}{section.6.10}%
+\contentsline {section}{\numberline {6.11}Validación preliminar de reproducibilidad en máquina virtual}{57}{section.6.11}%
+\contentsline {chapter}{\numberline {7}Conclusiones y trabajo futuro}{59}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Conclusiones}{59}{section.7.1}%
+\contentsline {subsection}{\numberline {7.1.1}Cumplimiento de los objetivos específicos}{59}{subsection.7.1.1}%
+\contentsline {subsection}{\numberline {7.1.2}Sobre la hipótesis H1}{60}{subsection.7.1.2}%
+\contentsline {subsection}{\numberline {7.1.3}Sobre la hipótesis H2}{60}{subsection.7.1.3}%
+\contentsline {subsection}{\numberline {7.1.4}Sobre la hipótesis H3}{61}{subsection.7.1.4}%
+\contentsline {subsection}{\numberline {7.1.5}Sobre el laboratorio como contribución}{61}{subsection.7.1.5}%
+\contentsline {subsection}{\numberline {7.1.6}Reflexión final}{61}{subsection.7.1.6}%
+\contentsline {section}{\numberline {7.2}Trabajo futuro}{62}{section.7.2}%
+\contentsline {section}{\numberline {7.3}Difusión y aplicabilidad como recurso docente}{63}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Consideraciones éticas}{64}{section.7.4}%
+\contentsline {chapter}{Bibliograf\'{\i }a}{65}{chapter*.35}%
+\contentsline {chapter}{\numberline {A}Reglas Wazuh completas}{67}{appendix.Alph1}%
+\contentsline {section}{\numberline {A.1}Estructura del fichero}{67}{section.Alph1.1}%
+\contentsline {section}{\numberline {A.2}Reglas del escenario E1 (cifrado local)}{67}{section.Alph1.2}%
+\contentsline {section}{\numberline {A.3}Reglas del escenario E2 (destrucción de copias)}{68}{section.Alph1.3}%
+\contentsline {section}{\numberline {A.4}Reglas del escenario E3 (movimiento lateral)}{69}{section.Alph1.4}%
+\contentsline {section}{\numberline {A.5}Reglas del escenario E4 (exfiltración)}{69}{section.Alph1.5}%
+\contentsline {chapter}{\numberline {B}Cobertura de Atomic Red Team}{71}{appendix.Alph2}%
+\contentsline {section}{\numberline {B.1}Objetivo y alcance}{71}{section.Alph2.1}%
+\contentsline {section}{\numberline {B.2}Cobertura por técnica}{71}{section.Alph2.2}%
+\contentsline {section}{\numberline {B.3}Resumen de cobertura}{72}{section.Alph2.3}%
+\contentsline {section}{\numberline {B.4}Limitaciones de la validación externa}{72}{section.Alph2.4}%
 \contentsline {chapter}{\numberline {C}Estructura del repositorio}{73}{appendix.Alph3}%
 \contentsline {section}{\numberline {C.1}Organización de ficheros}{73}{section.Alph3.1}%
-\contentsline {section}{\numberline {C.2}Reproducibilidad}{76}{section.Alph3.2}%
-\contentsline {section}{\numberline {C.3}Requisitos del sistema}{77}{section.Alph3.3}%
+\contentsline {section}{\numberline {C.2}Reproducibilidad}{75}{section.Alph3.2}%
+\contentsline {section}{\numberline {C.3}Requisitos del sistema}{76}{section.Alph3.3}%
 \contentsline {section}{\numberline {C.4}Licencia}{77}{section.Alph3.4}%

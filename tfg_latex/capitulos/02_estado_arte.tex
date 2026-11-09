@@ -92,11 +92,12 @@ independientemente de cómo se oculte el binario que lo ejecuta.
 
 \subsection{Impacto económico y sectorial}
 
-El informe de Veeam Data Protection Trends~2024~\cite{veeam2024} estima
-que el coste medio de un ataque de ransomware supera los cuatro millones
-de dólares, incluyendo el tiempo de inactividad, los costes de recuperación,
-las sanciones regulatorias y el daño reputacional. El tiempo medio de
-interrupción de la actividad es de veinte días.
+El coste medio global de una brecha de datos alcanzó los 4,88~millones de
+dólares en 2024, según el informe IBM Cost of a Data Breach~\cite{ibmcost2024};
+en el caso del ransomware, esta cifra agrega el tiempo de inactividad, los costes
+de recuperación, las posibles sanciones regulatorias y el daño reputacional. Los
+informes sectoriales de Veeam~\cite{veeam2024} documentan además interrupciones de
+la actividad que se prolongan durante semanas tras un incidente de este tipo.
 
 El sector sanitario merece una mención especial por la gravedad de las
 consecuencias. Durante la pandemia de COVID-19, el grupo Ryuk atacó
@@ -179,26 +180,23 @@ la eliminación de \textit{snapshots} en ZFS o Btrfs, y la sobrescritura de
 \textit{backups} en \textit{buckets} S3 mediante claves de acceso
 comprometidas.
 
-Un aspecto frecuentemente subestimado es el período de reconocimiento
-previo al cifrado. Según el informe IBM X-Force~2024~\cite{ibm2024},
-el tiempo medio entre la intrusión inicial y el despliegue del cifrador
-supera los 200~días. Durante ese período el atacante identifica y prepara
-la destrucción de las copias de seguridad.
+Un aspecto frecuentemente subestimado es el período que el atacante
+permanece en la red antes de ser detectado. Según el informe IBM Cost of a
+Data Breach~2024~\cite{ibmcost2024}, el tiempo medio hasta \emph{identificar}
+una brecha ronda los 200~días. Durante ese margen el atacante dispone de tiempo
+para identificar y preparar la destrucción de las copias de seguridad antes del
+cifrado.
 
-La magnitud del problema queda cuantificada con precisión en el informe
-\emph{The State of Ransomware~2025} de Sophos~\cite{sophos2025}: el 94\,\%
-de las organizaciones que sufrieron un ataque de ransomware en el último año
-declaran que los atacantes intentaron comprometer explícitamente sus copias de
-seguridad durante el ataque, y ese intento tuvo éxito en el 57\,\% de los
-casos, es decir, en más de la mitad de las organizaciones afectadas. El mismo
-informe documenta una caída hasta un mínimo de cuatro años en el uso efectivo de
-\emph{backups} como vía de recuperación (53\,\%, frente al 73\,\% del año
-anterior), un dato que sugiere que la erosión de la confianza en las estrategias
-de \emph{backup} convencionales --- precisamente la motivación central de este
-\pfg --- no es una percepción anecdótica sino una tendencia sectorial medible.
-Estos datos, publicados con posterioridad al diseño del experimento pero antes
-de la redacción de esta memoria, refuerzan \emph{a posteriori} la relevancia
-del escenario~E2 como el más representativo del comportamiento real de los
+La magnitud del problema queda cuantificada en el informe
+\emph{The State of Ransomware~2024} de Sophos~\cite{sophos2024}: el 94\,\%
+de las organizaciones que sufrieron un ataque de ransomware declaran que los
+atacantes intentaron comprometer explícitamente sus copias de seguridad durante
+el ataque, y ese intento tuvo éxito en el 57\,\% de los casos, es decir, en más
+de la mitad de las organizaciones afectadas. Este dato sugiere que la erosión de
+la fiabilidad de las estrategias de \emph{backup} convencionales frente a un
+adversario activo --- precisamente la motivación central de este \pfg --- no es
+una percepción anecdótica sino una tendencia sectorial medible, y refuerza la
+relevancia del escenario~E2 como representativo del comportamiento real de los
 atacantes, y no como un caso extremo poco frecuente.
 
 \section{Estrategias de backup y almacenamiento inmutable}
@@ -439,14 +437,16 @@ utilizados para validar la cobertura de herramientas de detección.
 La literatura académica sobre evaluación experimental de estrategias de
 backup en escenarios de ransomware es escasa.
 
-Moussaileb et al.~\cite{moussaileb2021} proponen un sistema de detección basado en el
-análisis del acceso a ficheros en tiempo real, con tasas de verdaderos
-positivos superiores al 95\,\% en condiciones de laboratorio.
+Moussaileb et al.~\cite{moussaileb2021} presentan una revisión sistemática
+(\emph{survey}) de la taxonomía del ransomware en Windows y de los mecanismos de
+detección existentes, con especial atención a las técnicas basadas en el acceso a
+ficheros. No proponen un sistema propio ni una comparación experimental de
+estrategias de recuperación, pero sistematizan el estado de la detección.
 
-Al-Mashhadani y Shafiq~\cite{almashhadani2019} evalúan técnicas de detección mediante
-aprendizaje automático sobre tráfico de red, logrando tasas de detección
-superiores al 98\,\% con tiempos inferiores a 30~segundos para el
-ransomware Locky.
+Almashhadani et al.~\cite{almashhadani2019} proponen un sistema de detección
+multiclasificador basado en el análisis del tráfico de red, evaluado como caso de
+estudio sobre el ransomware Locky, con tasas de detección elevadas durante la fase
+de actividad de red del ataque.
 
 Cabaj y Mazurczyk~\cite{cabaj2016} analizan el comportamiento de red del ransomware
 CryptoWall y proponen un sistema de detección y mitigación basado en
@@ -546,7 +546,7 @@ completamente automatizado y reproducible por terceros.
     \textcolor{white}{\textbf{Automatizado y reproducible}} \\
     \midrule
     Moussaileb et al.~\cite{moussaileb2021}      & No & No & No & No \\
-    Al-Mashhadani y Shafiq~\cite{almashhadani2019} & No & No & Parcial & No \\
+    Almashhadani et al.~\cite{almashhadani2019} & No & No & Parcial & No \\
     Cabaj y Mazurczyk~\cite{cabaj2016}            & No & No & No & No \\
     Gehani et al.~\cite{gehani2023}                & No & No & No & Parcial \\
     Von der Assen et al.~\cite{vonderassen2024}    & No & No & Parcial & No \\
