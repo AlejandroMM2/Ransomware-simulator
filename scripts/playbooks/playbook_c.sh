@@ -34,7 +34,7 @@ docker exec fileserver bash -c "
     export RESTIC_PASSWORD='ResticRepoLab2026Pass'
     export AWS_ACCESS_KEY_ID='restic-c-user'
     export AWS_SECRET_ACCESS_KEY='ResticCLab2026Secret'
-    restic restore latest --target / --no-lock 2>&1 | tail -5
+    restic restore \$(cat /opt/labprueba/.snapshot_id 2>/dev/null || echo latest) --target / --no-lock 2>&1 | tail -5
 "
 RESTORE_EXIT=$?
 T_RESTORE=$(date -u +%s%N)

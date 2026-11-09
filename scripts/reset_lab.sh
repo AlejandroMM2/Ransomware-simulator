@@ -28,6 +28,7 @@ docker exec fileserver /usr/local/bin/generate_test_files.sh /opt/labprueba 500
 
 # Calcular hashes baseline
 docker exec fileserver bash -c "
+    rm -f /opt/labprueba/.snapshot_id
     sha256sum /opt/labprueba/* 2>/dev/null | sort > /opt/labprueba/.baseline_hashes.csv
 "
 log "baseline_hash_computed"
@@ -54,9 +55,18 @@ case "$STRATEGY" in
         docker exec fileserver bash -c "
             export RESTIC_REPOSITORY='sftp:restic-b@restic-sftp:/srv/backups/restic-b'
             export RESTIC_PASSWORD='ResticRepoLab2026Pass'
-            restic init 2>/dev/null || true
-            restic backup /opt/labprueba --exclude '/opt/labprueba/.baseline_hashes.csv' 2>&1 | tail -3
-        "
+            restic init >/dev/null 2>&1 || true
+            for intento in 1 2 3; do
+                SID=\$(restic backup /opt/labprueba \\
+                        --exclude '/opt/labprueba/.baseline_hashes.csv' \\
+                        --exclude '/opt/labprueba/.snapshot_id' \\
+                        --json 2>>/tmp/restic_backup.err \\
+                      | grep -o '\"snapshot_id\":\"[0-9a-f]*\"' | cut -d'\"' -f4)
+                if [ -n \"\$SID\" ]; then echo \$SID > /opt/labprueba/.snapshot_id; exit 0; fi
+                sleep 3
+            done
+            exit 1
+        " || { log "strategy_B_backup_FAILED"; exit 1; }
         log "strategy_B_done"
         ;;
 
@@ -65,17 +75,24 @@ case "$STRATEGY" in
         docker exec fileserver bash -c "
             export RESTIC_REPOSITORY='s3:http://minio:9000/restic-c'
             export RESTIC_PASSWORD='ResticRepoLab2026Pass'
-            # Init con usuario root (puede borrar locks de test)
+            # Init con usuario root (solo la primera vez; luego falla y se ignora)
             export AWS_ACCESS_KEY_ID='pfgadmin'
             export AWS_SECRET_ACCESS_KEY='MinioLab2026Pass'
-            restic init 2>/dev/null || true
-            # Backup con usuario restringido y --no-lock
+            restic init >/dev/null 2>&1 || true
+            # Backup con usuario restringido (sin permiso de borrado)
             export AWS_ACCESS_KEY_ID='restic-c-user'
             export AWS_SECRET_ACCESS_KEY='ResticCLab2026Secret'
-            restic backup /opt/labprueba \
-                --exclude '/opt/labprueba/.baseline_hashes.csv' \
-                --no-lock 2>&1 | tail -3
-        "
+            for intento in 1 2 3; do
+                SID=\$(restic backup /opt/labprueba \\
+                        --exclude '/opt/labprueba/.baseline_hashes.csv' \\
+                        --exclude '/opt/labprueba/.snapshot_id' \\
+                        --no-lock --json 2>>/tmp/restic_backup.err \\
+                      | grep -o '\"snapshot_id\":\"[0-9a-f]*\"' | cut -d'\"' -f4)
+                if [ -n \"\$SID\" ]; then echo \$SID > /opt/labprueba/.snapshot_id; exit 0; fi
+                sleep 3
+            done
+            exit 1
+        " || { log "strategy_C_backup_FAILED"; exit 1; }
         log "strategy_C_done"
         ;;
 esac

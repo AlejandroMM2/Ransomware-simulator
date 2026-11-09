@@ -39,7 +39,7 @@ log_event "restore_start"
 docker exec fileserver bash -c "
     export RESTIC_REPOSITORY='sftp:restic-b@restic-sftp:/srv/backups/restic-b'
     export RESTIC_PASSWORD='ResticRepoLab2026Pass'
-    restic restore latest --target / 2>&1 | tail -5
+    restic restore \$(cat /opt/labprueba/.snapshot_id 2>/dev/null || echo latest) --target / 2>&1 | tail -5
 "
 RESTORE_EXIT=$?
 T_RESTORE=$(date -u +%s%N)
