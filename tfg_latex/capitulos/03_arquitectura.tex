@@ -34,8 +34,8 @@ siguientes especificaciones:
 \end{table}
 
 El consumo de memoria en reposo del \emph{stack} completo es de aproximadamente
-6\,GB, distribuidos principalmente entre el \emph{indexer} OpenSearch (2\,GB de
-\emph{heap} fijo) y el \emph{manager} Wazuh (512\,MB).
+6\,GB, dominado por el \emph{indexer}, cuya \gls{jvm} se fija a 1\,GB de \emph{heap}
+(\texttt{-Xms1g -Xmx1g}), más el \emph{manager} Wazuh y el resto de servicios.
 
 \subsection{Sistema operativo: CachyOS}
 
@@ -106,10 +106,13 @@ función de cada contenedor.
 
 \subsection{Infraestructura SIEM}
 
-El \textbf{wazuh-indexer} ejecuta OpenSearch~4.7.5. Requiere
-\texttt{vm.max\_map\_count}~$\geq$~262.144 en el \emph{kernel} del \emph{host}
-y se configura con \emph{heap} fijo de 1\,GB (\texttt{-Xms1g} \texttt{-Xmx1g}) para
-evitar pausas de recolección de basura de la \gls{jvm}.
+El \textbf{wazuh-indexer} es el \emph{Wazuh Indexer}, el \emph{fork} de OpenSearch
+que distribuye Wazuh en su versión~4.7.5. Requiere
+\texttt{vm.max\_map\_count}~$\geq$~262.144 en el \emph{kernel} del \emph{host},
+se configura con \emph{heap} fijo de 1\,GB (\texttt{-Xms1g} \texttt{-Xmx1g}) para
+evitar pausas de recolección de basura de la \gls{jvm}, y se le concede
+\texttt{bootstrap.memory\_lock=true} junto con \emph{ulimits} de \texttt{memlock}
+sin límite y \texttt{nofile} de 65.536.
 
 El \textbf{wazuh-manager} es el núcleo del \gls{siem}: recibe los eventos de los
 agentes, aplica las reglas de correlación y envía las alertas al \emph{indexer}
@@ -154,9 +157,10 @@ herramientas adicionales instaladas son:
 \begin{itemize}
   \item \texttt{awscli}: para las operaciones sobre \gls{s3} en el escenario~E2,
   apuntando al \emph{endpoint} de MinIO con \texttt{--endpoint-url}.
-  \item PowerShell~7.4.6 con Atomic Red Team: para la validación de técnicas MITRE
-  ATT\&CK (Anexo~B).
-  \item \texttt{netcat-openbsd}: para el canal de exfiltración del escenario~E4.
+  \item PowerShell~7.4.6 con Atomic Red Team: empleado en las pruebas exploratorias
+  de contraste con el \emph{framework} MITRE ATT\&CK, cuyo alcance y limitaciones
+  se analizan en el anexo~\ref{anx:art}.
+  \item \texttt{netcat-traditional}: para el canal de exfiltración del escenario~E4.
 \end{itemize}
 
 El atacante también ejecuta un agente Wazuh, permitiendo monitorizar su actividad
@@ -174,10 +178,26 @@ la \gls{api} de Amazon \gls{s3}, configurado con dos \emph{buckets}:
 
 \begin{description}
   \item[\texttt{restic-c}] Protegido con Object Lock COMPLIANCE durante 30~días.
-  El usuario \gls{iam} \texttt{restic-c-user} puede leer y escribir pero no borrar.
+  El usuario \gls{iam} \texttt{restic-c-user} puede leer y escribir pero
+  \textbf{no borrar}: su política \gls{iam} (\texttt{restic-c-policy.json})
+  deniega explícitamente las operaciones de borrado, lo que --- junto con la
+  inmutabilidad de objeto --- cierra el vector de los \emph{delete markers}
+  discutido en el capítulo~\ref{C:discusion}.
   \item[\texttt{restic-b}] Convencional sin protección. El usuario
-  \texttt{restic-b-user} tiene permisos estándar de lectura, escritura y borrado.
+  \texttt{restic-b-user} tiene permisos estándar de lectura, escritura y borrado
+  (\texttt{restic-b-policy.json}).
 \end{description}
+
+En cuanto a la imagen, el servidor MinIO y su cliente (\texttt{minio-client},
+usado por el contenedor \texttt{minio-init} para crear \emph{buckets}, usuarios y
+políticas) se fijan a imágenes del espacio de nombres \texttt{bitnamilegacy}
+ancladas por \emph{digest} SHA-256
+(\texttt{bitnamilegacy/minio:2025.7.23\allowbreak{}-debian-12-r5@sha256:\ldots}).
+Esta decisión responde a que las imágenes comunitarias oficiales de MinIO dejaron
+de publicarse en Docker Hub a finales de 2025; anclar por \emph{digest} garantiza
+que la reproducción del laboratorio use exactamente la misma imagen, con
+independencia de cambios posteriores en las etiquetas móviles. El servidor
+almacena sus objetos en \texttt{/bitnami/minio/data}.
 
 \section{Diagrama de red y flujo de comunicación}
 \label{sec:diagrama-red}
@@ -251,41 +271,34 @@ paquetes de red.
 \section{Recursos, límites y comprobaciones de estado}
 \label{sec:recursos-healthchecks}
 
-Cada servicio del fichero \texttt{docker-compose.yml} define explícitamente
-límites de memoria (\texttt{mem\_limit}) y una directiva \texttt{healthcheck}
-propia, siguiendo la práctica recomendada para entornos de contenedores en los que
-la ausencia de límites puede provocar que un único servicio agote la memoria
-disponible del \emph{host} y degrade al resto del \emph{stack}. La tabla
-resumen de asignación de memoria es la siguiente: 2\,GB para
-\texttt{wazuh-indexer} (más 1\,GB de \emph{heap} JVM dentro de ese límite),
-1\,GB para \texttt{wazuh-manager}, 512\,MB para \texttt{wazuh-dashboard},
-512\,MB para \texttt{minio} y 256\,MB para cada uno de los contenedores
-víctima y el atacante.
+El control de recursos del \emph{stack} se concentra en el \emph{indexer}, que es
+el componente con mayor consumo: su \gls{jvm} se limita por \emph{heap} fijo
+(\texttt{-Xms1g -Xmx1g}) y se le asignan los \emph{ulimits} de \texttt{memlock}
+(sin límite, necesario para \texttt{bootstrap.memory\_lock=true}) y \texttt{nofile}
+(65.536) que OpenSearch requiere. El resto de servicios no fijan un
+\texttt{mem\_limit} explícito en el \texttt{docker-compose.yml}; en el entorno de
+desarrollo descrito (16\,GB de \gls{ram}) el consumo conjunto en reposo
+($\approx$6\,GB) deja margen suficiente, si bien un despliegue en un \emph{host}
+más ajustado se beneficiaría de añadir límites por servicio.
 
 Las comprobaciones de estado (\texttt{healthcheck}) determinan tanto el orden de
 arranque descrito en la sección~\ref{sec:orden-arranque} como la capacidad del
 \emph{script} \texttt{verify\_lab.sh} de confirmar automáticamente, antes de
-lanzar el experimento, que los nueve contenedores están operativos. Por
-simplicidad y para no depender de herramientas adicionales dentro de cada
-imagen, las comprobaciones activas se basan en la apertura del puerto de
-servicio mediante el \emph{builtin} \texttt{/dev/tcp} de \emph{bash}: para
-\texttt{wazuh-indexer} se comprueba el puerto~9200, y para
-\texttt{wazuh-manager}, los puertos~1514 y~55000 simultáneamente. Para
-\texttt{minio} se emplea el comando \texttt{mc ready local}, propio del
-cliente oficial de MinIO incluido en su imagen. Estas comprobaciones verifican
-que el servicio \emph{escucha}, pero no garantizan por sí solas un estado
-interno completamente sano (por ejemplo, un clúster OpenSearch en estado
-\texttt{yellow} respondería igual que uno en estado \texttt{green}); como
-posible refinamiento, el propio \texttt{docker-compose.yml} documenta --- a
-modo de alternativa comentada junto a cada \texttt{healthcheck} --- una
-versión más estricta basada en el \emph{endpoint}
-\texttt{/\_cluster/health} de OpenSearch, en el estado reportado por
-\texttt{/var/ossec/bin/wazuh-control status} y en el \emph{endpoint}
-\texttt{/minio/health/live}, no activada por defecto para mantener el arranque
-libre de dependencias adicionales. Ningún contenedor víctima ni el atacante
-define \texttt{healthcheck} propio, ya que su disponibilidad se verifica
-indirectamente a través del estado \emph{Active} del agente Wazuh
-correspondiente, reportado por la \gls{api} REST del \emph{manager}.
+lanzar el experimento, que los contenedores están operativos. Por simplicidad y
+para no depender de herramientas adicionales dentro de cada imagen, todas las
+comprobaciones activas se basan en la apertura del puerto de servicio mediante el
+\emph{builtin} \texttt{/dev/tcp} de \emph{bash}: \texttt{wazuh-indexer} comprueba
+el puerto~9200; \texttt{wazuh-manager}, los puertos~1514 y~55000 simultáneamente;
+y \texttt{minio}, el puerto~9000. Estas comprobaciones verifican que el servicio
+\emph{escucha}, pero no garantizan por sí solas un estado interno completamente
+sano (por ejemplo, un clúster en estado \texttt{yellow} respondería igual que uno
+en estado \texttt{green}); una comprobación más estricta basada en los
+\emph{endpoints} de salud de cada servicio queda apuntada como posible
+refinamiento. Los contenedores \texttt{wazuh-dashboard}, los dos víctima, el
+atacante y \texttt{restic-sftp} no definen \texttt{healthcheck} propio: el primero
+arranca cuando el \emph{manager} está \emph{healthy}, y la disponibilidad de los
+agentes se verifica indirectamente a través del estado \emph{Active} del agente
+Wazuh correspondiente, reportado por la \gls{api} REST del \emph{manager}.
 
 \section{Mecanismo de comunicación runner.jsonl}
 \label{sec:runner}
@@ -310,14 +323,14 @@ Este mecanismo permite la detección de eventos de alto nivel con independencia 
 \section{Configuración de red y seguridad}
 
 Todos los puertos del laboratorio se exponen al \emph{host} únicamente en la
-interfaz de \emph{loopback} (\texttt{127.0.0.1}), evitando exposiciones en la
-red local, \textbf{con una única excepción deliberada}: el puerto~443 de
-\texttt{wazuh-dashboard} se publica sobre todas las interfaces
-(\texttt{"443:5601"} sin restricción de IP en \texttt{docker-compose.yml}),
-para permitir el acceso a la interfaz web del \gls{siem} desde otras máquinas
-de la red local durante la experimentación, sin necesidad de un túnel SSH
-adicional. Esta excepción está documentada mediante un comentario en el propio
-\texttt{docker-compose.yml} junto a la definición de puertos del servicio.
+interfaz de \emph{loopback} (\texttt{127.0.0.1}), incluido el puerto~443 del
+\texttt{wazuh-dashboard} (\texttt{"127.0.0.1:443:5601"}), de modo que ninguno de
+los servicios queda accesible desde la red local sin un túnel \gls{ssh} explícito.
+La red \texttt{lab-net} se define como una red \emph{bridge} con
+subred~\texttt{172.20.0.0/24}; el laboratorio la mantiene con \texttt{internal:
+false} durante el desarrollo y documenta en el propio \texttt{docker-compose.yml}
+que puede conmutarse a \texttt{internal: true} para un aislamiento total una vez
+configurado.
 
 \begin{table}[ht]
   \centering
@@ -346,7 +359,7 @@ adicional. Esta excepción está documentada mediante un comentario en el propio
 \label{sec:logging}
 
 La capacidad de depurar el comportamiento del laboratorio y de auditar a
-posteriori cada una de las 120~ejecuciones depende de una estrategia de
+posteriori cada una de las 240~ejecuciones depende de una estrategia de
 registro (\emph{logging}) coherente entre los distintos componentes. El
 laboratorio combina tres niveles de registro con propósitos distintos y
 complementarios.
@@ -371,20 +384,20 @@ comparar el volumen total de eventos \gls{fim} generados por un escenario
 frente al subconjunto que efectivamente supera los umbrales configurados.
 
 El tercer nivel es el registro de \emph{experimento}, correspondiente al
-mecanismo \texttt{runner.jsonl} descrito en la
-sección~\ref{sec:runner}, que constituye la única fuente de verdad sobre el
-progreso interno de cada escenario de ataque (por ejemplo, distinguir si una
-ejecución de E3 falló en el paso de acceso SSH inicial o en el salto lateral
-posterior). Este tercer nivel es el que consulta directamente
-\texttt{experiment\_runner.py} para calcular $\tlaunch$ con precisión de
-nanosegundo, como se describe en la sección~\ref{sec:variables-escenario} del
-capítulo~\ref{C:disenyo}, y es también la fuente que el mecanismo de control
-de errores descrito en la sección~\ref{sec:control-errores} de ese mismo
-capítulo utiliza para diferenciar un fallo de infraestructura de un resultado
-experimental legítimo.
+mecanismo \texttt{runner.jsonl} descrito en la sección~\ref{sec:runner}, que
+constituye la fuente de verdad sobre el progreso interno de cada escenario de
+ataque (por ejemplo, distinguir si una ejecución de E3 falló en el paso de acceso
+\gls{ssh} inicial o en el salto lateral posterior). Este fichero lo consume el
+\emph{manager} Wazuh como fuente de \emph{logs} para las reglas \gls{json} (100212,
+100213 y 100240), y lo utiliza \texttt{experiment\_runner.py} para seguir ese
+progreso interno y, como describe la sección~\ref{sec:control-errores} del
+capítulo~\ref{C:disenyo}, diferenciar un fallo de infraestructura de un resultado
+experimental legítimo. El instante de lanzamiento $\tlaunch$, en cambio, lo
+registra el \emph{runner} con su propio reloj de alta resolución (nanosegundos) en
+el momento de lanzar el ataque, no a partir de este fichero.
 
 La combinación de los tres niveles permite reconstruir de forma completa, para
-cualquiera de las 120~ejecuciones del experimento, la secuencia exacta de
+cualquiera de las 240~ejecuciones del experimento, la secuencia exacta de
 eventos desde el lanzamiento del escenario hasta el registro final en
 \texttt{raw.csv}, lo que resultó fundamental durante la fase de calibración
 para diagnosticar por qué ciertas reglas no disparaban en el orden esperado.
@@ -400,6 +413,10 @@ impidió el uso de \texttt{auditd} para la instrumentación de \emph{syscalls}. 
 solución adoptada fue sustituirlo por \gls{fim} en tiempo real más eventos \gls{json}
 estructurados en \texttt{runner.jsonl}, representativa de los despliegues \gls{siem}
 en producción donde \texttt{auditd} raramente se activa por su \emph{overhead}.
+Como consecuencia de abandonar \texttt{auditd}, los contenedores del laboratorio se
+ejecutan \textbf{sin privilegios} (\texttt{privileged} y \texttt{cap\_add} no se
+utilizan en el \texttt{docker-compose.yml}), lo que reduce la superficie de ataque
+del propio entorno de experimentación.
 
 \subsection{Imposibilidad de webhook de fichero en MinIO}
 
