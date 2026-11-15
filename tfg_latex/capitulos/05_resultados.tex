@@ -142,7 +142,7 @@ iteraciones previas del laboratorio presentaba los tiempos más altos por un art
 de medición, se detecta ahora en torno a 1.2~s gracias a las reglas de sesión SSH y
 de creación del archivo comprimido en \texttt{/tmp}.
 
-\section{Tiempos de recuperación (\texorpdfstring{\gls{mttr}}{MTTR})}
+\section{Tiempos de recuperación (\texorpdfstring{\acrshort{mttr}}{MTTR})}
 
 El \gls{mttr}, definido como el tiempo desde el lanzamiento del ataque hasta la
 verificación de la restauración, solo es calculable para las ejecuciones con
@@ -316,6 +316,24 @@ ventaja proviene del protocolo S3 frente a SFTP, no de Object Lock en sí; la
 aportación de Object Lock es de disponibilidad, no de velocidad, como muestra el
 análisis de H3.
 
+\section{Análisis estadístico — H2}
+\label{sec:estadistica-h2}
+
+\textbf{La hipótesis H2 se confirma}. Los tiempos de detección medianos oscilan entre
+0.4 y 11.2~segundos, en todos los casos muy por debajo del umbral de 60~s. La
+instrumentación con un \gls{siem} permite alertar sobre un ataque en curso en
+cuestión de segundos, en contraste con los tiempos de permanencia (\emph{dwell time})
+de meses que la industria reporta de forma recurrente para incidentes no
+instrumentados. Conviene precisar que ambas cifras no son directamente comparables
+—el \emph{dwell time} mide el intervalo desde la intrusión inicial hasta su
+descubrimiento, mientras que $\tdetect$ mide el tiempo hasta alertar sobre una fase
+de ataque ya iniciada y con reglas diseñadas para ella—, pero el contraste ilustra la
+transformación cualitativa que aporta la detección automatizada.
+
+Dentro del laboratorio, $\tdetect$ presenta baja variabilidad y depende del escenario
+y de las reglas, no de la estrategia de \emph{backup}, lo que es coherente con el
+diseño.
+
 \section{Análisis estadístico — H3}
 \label{sec:estadistica-h3}
 
@@ -347,24 +365,6 @@ confirma con evidencia estadística muy sólida}: la combinación de Object Lock
 COMPLIANCE y mínimo privilegio \gls{iam} proporciona una ventaja cualitativa —no solo
 cuantitativa— sobre el \emph{backup} convencional. La magnitud de la diferencia en E2
 es la máxima posible: 0\,\% vs. 100\,\% de tasa de éxito.
-
-\section{Análisis estadístico — H2}
-\label{sec:estadistica-h2}
-
-\textbf{La hipótesis H2 se confirma}. Los tiempos de detección medianos oscilan entre
-0.4 y 11.2~segundos, en todos los casos muy por debajo del umbral de 60~s. La
-instrumentación con un \gls{siem} permite alertar sobre un ataque en curso en
-cuestión de segundos, en contraste con los tiempos de permanencia (\emph{dwell time})
-de meses que la industria reporta de forma recurrente para incidentes no
-instrumentados. Conviene precisar que ambas cifras no son directamente comparables
-—el \emph{dwell time} mide el intervalo desde la intrusión inicial hasta su
-descubrimiento, mientras que $\tdetect$ mide el tiempo hasta alertar sobre una fase
-de ataque ya iniciada y con reglas diseñadas para ella—, pero el contraste ilustra la
-transformación cualitativa que aporta la detección automatizada.
-
-Dentro del laboratorio, $\tdetect$ presenta baja variabilidad y depende del escenario
-y de las reglas, no de la estrategia de \emph{backup}, lo que es coherente con el
-diseño.
 
 \section{Síntesis narrativa por escenario}
 \label{sec:sintesis-escenarios}
