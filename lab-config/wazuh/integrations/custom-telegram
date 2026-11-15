@@ -1,8 +1,5 @@
 #!/bin/sh
-# custom-telegram — envoltorio que Wazuh invoca (nombre sin extension).
-# Llama al script Python con el interprete embebido de Wazuh si existe,
-# y si no, con el python3 del sistema. Reenvia los argumentos tal cual.
-
+# Wazuh invoca este wrapper (nombre sin extension); usa su Python embebido.
 DIR=$(dirname "$0")
 PY_SCRIPT="${DIR}/custom-telegram.py"
 WAZUH_PYTHON="/var/ossec/framework/python/bin/python3"
