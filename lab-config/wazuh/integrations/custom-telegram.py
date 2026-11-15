@@ -1,23 +1,8 @@
 #!/usr/bin/env python3
-"""
-custom-telegram.py — Integracion custom de Wazuh para reenviar alertas a Telegram.
-
-Wazuh (manager) invoca este script cuando una alerta supera el <level> configurado
-en el bloque <integration> de ossec.conf. Contrato de argumentos de Wazuh:
-
-    custom-telegram <alert_file> <api_key> <hook_url> [<options_file>]
-
-  argv[1] = ruta al fichero JSON con la alerta que ha disparado la integracion
-  argv[2] = api_key          (campo <api_key> de ossec.conf; vacio si no se usa)
-  argv[3] = hook_url         (campo <hook_url>: URL sendMessage del bot de Telegram)
-  argv[4] = options_file     (opcional; JSON del campo <options>, p.ej. {"chat_id": "..."})
-
-No requiere dependencias externas: usa solo la biblioteca estandar (urllib), de modo
-que funciona con el interprete Python embebido de Wazuh sin instalar nada.
-
-El chat_id se obtiene, por este orden, de: el fichero de opciones (argv[4]),
-la variable de entorno TELEGRAM_CHAT_ID. El token del bot va embebido en el hook_url.
-"""
+"""Integracion custom de Wazuh: reenvia a Telegram las alertas que superan el
+<level> del bloque <integration>. Solo stdlib (sirve el Python embebido de Wazuh).
+Wazuh lo llama como: custom-telegram <alert_file> <api_key> <hook_url> [<options_file>].
+El token va en el hook_url; el chat_id, en <options> o en TELEGRAM_CHAT_ID."""
 
 import json
 import os
@@ -30,7 +15,6 @@ LOG_FILE = "/var/ossec/logs/integrations.log"
 
 
 def debug(msg: str) -> None:
-    """Registra en el log de integraciones de Wazuh (best-effort)."""
     line = f"{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ')} custom-telegram: {msg}"
     try:
         with open(LOG_FILE, "a") as f:
@@ -49,34 +33,10 @@ def resolve_chat_id(options_file: str | None) -> str | None:
     if options_file and os.path.exists(options_file):
         try:
             with open(options_file) as f:
-                opts = json.load(f)
-            cid = opts.get("chat_id")
-            if cid:
-                return str(cid)
+                return str(json.load(f).get("chat_id") or "") or None
         except Exception as e:
             debug(f"no se pudo leer options_file: {e}")
     return os.environ.get("TELEGRAM_CHAT_ID")
-
-
-def build_message(alert: dict) -> str:
-    """Compone un mensaje legible a partir de los campos relevantes de la alerta."""
-    rule = alert.get("rule", {})
-    agent = alert.get("agent", {})
-    level = rule.get("level", "?")
-    rule_id = rule.get("id", "?")
-    desc = rule.get("description", "(sin descripcion)")
-    groups = ", ".join(rule.get("groups", []))
-    agent_name = agent.get("name", alert.get("manager", {}).get("name", "?"))
-    ts = alert.get("timestamp", "")
-
-    emoji = "\U0001F6A8" if _as_int(level) >= 12 else "⚠️"
-    return (
-        f"{emoji} <b>Alerta Wazuh - Nivel {level}</b>\n"
-        f"<b>Regla:</b> {rule_id} - {desc}\n"
-        f"<b>Agente:</b> {agent_name}\n"
-        f"<b>Grupos:</b> {groups}\n"
-        f"<b>Timestamp:</b> {ts}"
-    )
 
 
 def _as_int(value) -> int:
@@ -84,6 +44,20 @@ def _as_int(value) -> int:
         return int(value)
     except (TypeError, ValueError):
         return 0
+
+
+def build_message(alert: dict) -> str:
+    rule = alert.get("rule", {})
+    agent = alert.get("agent", {})
+    level = rule.get("level", "?")
+    emoji = "\U0001F6A8" if _as_int(level) >= 12 else "⚠️"
+    return (
+        f"{emoji} <b>Alerta Wazuh - Nivel {level}</b>\n"
+        f"<b>Regla:</b> {rule.get('id', '?')} - {rule.get('description', '(sin descripcion)')}\n"
+        f"<b>Agente:</b> {agent.get('name', alert.get('manager', {}).get('name', '?'))}\n"
+        f"<b>Grupos:</b> {', '.join(rule.get('groups', []))}\n"
+        f"<b>Timestamp:</b> {alert.get('timestamp', '')}"
+    )
 
 
 def send_telegram(hook_url: str, chat_id: str, text: str) -> None:
