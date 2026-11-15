@@ -192,11 +192,15 @@ docker compose up -d
 bash scripts/post_start.sh
 bash scripts/verify_lab.sh
 
-# 8. Lanzar el experimento completo (~5-6 horas)
+# 8. (Opcional) Lanzar la campana experimental completa (~5-6 horas).
+#    Genera un CSV nuevo en results/raw_<fecha_hora>.csv
 python3 experiment_runner.py
 
-# 9. Generar analisis estadistico y figuras
-bash 00_ejecutar_todo.sh
+# 9. Generar el analisis estadistico y las figuras.
+#    Para reproducir a partir del conjunto de datos incluido en el repo:
+bash 00_ejecutar_todo.sh --csv datos/raw_experimento.csv
+#    (Si en el paso 8 se ha relanzado el experimento, apuntar en su lugar
+#     al CSV recien generado: --csv results/raw_<fecha_hora>.csv)
 \end{lstlisting}
 
 \section{Requisitos del sistema}
