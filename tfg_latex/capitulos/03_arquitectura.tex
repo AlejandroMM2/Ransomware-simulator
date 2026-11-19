@@ -1,521 +1,469 @@
 \documentclass[../main.tex]{subfiles}
 \begin{document}
 
-\chapter{Arquitectura del laboratorio}
-\label{C:arquitectura}
+% capitulos/05_resultados.tex
 
-\section{Entorno de experimentación}
+\chapter{Resultados}
+\label{C:resultados}
 
-\subsection{Hardware del host}
+\section{Descripción del experimento ejecutado}
+\label{sec:experimento-ejecutado}
 
-El laboratorio completo se ejecuta sobre un equipo de sobremesa personal cuyas
-especificaciones recoge la Tabla~\ref{tab:hardware}:
+El experimento completo se ejecutó en una única campaña sobre el \emph{host}
+\texttt{pc-pantu}. El \emph{runner} completó las 240~ejecuciones en aproximadamente
+cinco horas y media sin ningún error ni ejecución parcial. Tanto el código del
+laboratorio como el conjunto de datos analizado en este capítulo están
+disponibles públicamente en el repositorio del proyecto,
+\url{https://github.com/AlejandroMM2/Ransomware-simulator}, cuya estructura
+completa se describe en el anexo~\ref{anx:repositorio}. El fichero CSV resultante
+contiene exactamente 240~filas, veinte por cada una de las doce celdas del factorial
+($4~\text{escenarios} \times 3~\text{estrategias} \times 20~\text{repeticiones}$),
+ejecutadas en orden aleatorio con semilla fija para evitar que la estrategia quede
+confundida con el momento de ejecución.
 
-\begin{table}[ht]
-  \centering
-  \rowcolors{2}{tabla-par}{white}
-  \begin{tabularx}{\textwidth}{X X}
-    \toprule
-    \rowcolor{tabla-cabecera}
-    \textcolor{white}{\textbf{Componente}} &
-    \textcolor{white}{\textbf{Especificación}} \\
-    \midrule
-    Procesador        & AMD Ryzen (arquitectura x86\_64) \\
-    Memoria RAM       & 16\,GB DDR4 \\
-    Almacenamiento    & SSD NVMe \\
-    Sistema operativo & CachyOS (basado en Arch Linux) \\
-    Kernel            & linux-cachyos 7.1.3-2 \\
-    Docker Engine     & 27.x \\
-    Docker Compose    & v2.x \\
-    \bottomrule
-  \end{tabularx}
-  \caption{Especificaciones del equipo \textit{host} de experimentación.}
-  \label{tab:hardware}
-\end{table}
+A diferencia de versiones preliminares del laboratorio, el tiempo de detección
+($\tdetect$) se mide ahora a partir del \emph{timestamp} real que el \emph{indexer}
+asigna a la primera alerta del grupo del escenario, y no del instante en que el
+sondeo la descubre. El sondeo periódico cada 5~s solo introduce latencia en la
+ejecución, no en la medida: el valor registrado es el que el \gls{siem} asignó al
+generar la alerta. Antes de cada ataque se espera además a que el ruido de eventos
+\gls{fim} generado por el \emph{reset} se drene por completo, con el mismo criterio
+para las tres estrategias.
 
-El consumo de memoria en reposo del \emph{stack} completo es de aproximadamente
-6\,GB, dominado por el \emph{indexer}, cuya \gls{jvm} se fija a 1\,GB de \emph{heap}
-(\texttt{-Xms1g -Xmx1g}), más el \emph{manager} Wazuh y el resto de servicios.
+La verificación de la integridad del CSV, realizada mediante el \emph{script}
+\texttt{01\_analisis\_estadistico.py}, confirmó que no hay valores faltantes en
+ninguna columna obligatoria ni filas con estados inconsistentes.
 
-\subsection{Sistema operativo: CachyOS}
+\section{Tasa de recuperación}
 
-CachyOS es una distribución Linux basada en Arch Linux orientada al rendimiento,
-que incluye el \emph{kernel} personalizado linux-cachyos con parches para mejorar
-la latencia en cargas de trabajo interactivas. Entre estos parches se encuentran
-el planificador \gls{bore} y modificaciones en la gestión de memoria y
-caché de \gls{cpu}.
-
-Estas optimizaciones tienen una consecuencia relevante para el laboratorio: el
-\emph{kernel} linux-cachyos bloquea el acceso al subsistema de auditoría del
-\emph{kernel} (\emph{netlink audit}) desde \emph{namespaces} de contenedor, incluso
-con \texttt{privileged:~true}. Esta limitación y la solución adoptada se documentan
-en la sección~\ref{sec:limitaciones}.
-
-\section{Visión general del diseño}
-
-El laboratorio se implementa como un conjunto de contenedores Docker orquestados
-mediante Docker Compose. La decisión de usar contenedores en lugar de máquinas
-virtuales responde a tres criterios:
-
-\begin{enumerate}
-  \item \textbf{Reproducibilidad}: los contenedores garantizan un entorno idéntico
-  en cualquier máquina con Docker instalado. Cualquier investigador puede reproducir
-  el experimento clonando el repositorio y ejecutando \texttt{docker compose up}.
-
-  \item \textbf{Eficiencia de recursos}: el \emph{overhead} de los contenedores
-  es significativamente menor que el de las \gls{vm}. El laboratorio opera con
-  6\,GB de \gls{ram}, frente a los 16--32\,GB de una implementación equivalente
-  con máquinas virtuales.
-
-  \item \textbf{Facilidad de automatización}: Docker Compose define el estado
-  completo de la infraestructura en un único fichero declarativo, facilitando la
-  integración con el \emph{script} de orquestación y la reconfiguración entre
-  ejecuciones.
-\end{enumerate}
-
-La infraestructura se organiza en una red privada \texttt{172.20.0.0/24} con IPs
-estáticas asignadas a cada contenedor. La Tabla~\ref{tab:contenedores} detalla la
-función de cada contenedor.
+La recuperación solo tiene sentido en los escenarios que provocan pérdida de datos
+(E1, cifrado local; y E2, destrucción de copias). Los escenarios E3 (movimiento
+lateral) y E4 (exfiltración) no cifran ni destruyen los datos del \emph{fileserver},
+de modo que su tasa de recuperación no es interpretable y se excluye de este
+análisis; en ellos la variable de interés es la detección. La Tabla~\ref{tab:tasa-recuperacion}
+presenta la tasa de recuperación exitosa (\texttt{recovery\_status = success}) por
+estrategia sobre las 40~ejecuciones con pérdida de datos de cada una.
 
 \begin{table}[ht]
   \centering
   \rowcolors{2}{tabla-par}{white}
-  \begin{tabularx}{\textwidth}{C{2.5cm} C{3cm} X}
+  \begin{tabularx}{\textwidth}{X C{2.2cm} C{2cm} C{2.4cm} C{2.4cm}}
     \toprule
     \rowcolor{tabla-cabecera}
-    \textcolor{white}{\textbf{Contenedor}} &
-    \textcolor{white}{\textbf{IP}} &
-    \textcolor{white}{\textbf{Función}} \\
+    \textcolor{white}{\textbf{Estrategia}} &
+    \textcolor{white}{\textbf{Ejec.}} &
+    \textcolor{white}{\textbf{Success}} &
+    \textcolor{white}{\textbf{Impossible}} &
+    \textcolor{white}{\textbf{Tasa de éxito}} \\
     \midrule
-    wazuh-indexer   & 172.20.0.21 & OpenSearch: almacenamiento de alertas \\
-    wazuh-manager   & 172.20.0.20 & Motor de correlación y reglas \\
-    wazuh-dashboard & 172.20.0.22 & Interfaz web de visualización \\
-    fileserver      & 172.20.0.10 & Víctima principal (servidor de ficheros) \\
-    workstation     & 172.20.0.11 & Víctima secundaria (objetivo de E3) \\
-    attacker        & 172.20.0.30 & Atacante basado en Kali Linux \\
-    restic-sftp     & 172.20.0.41 & Destino de backups estrategia B \\
-    minio           & 172.20.0.40 & Almacenamiento de objetos S3-compatible \\
-    minio-init      & N/A & Inicialización de buckets (one-shot) \\
+    A (Sin backup)              & 40 &  0 & 40 &   0\,\% \\
+    B (Restic + SFTP)           & 40 & 20 & 20 &  50\,\% \\
+    C (MinIO Object Lock)       & 40 & 40 &  0 & 100\,\% \\
     \bottomrule
   \end{tabularx}
-  \caption{Contenedores del laboratorio y su dirección IP en la red \texttt{lab-net}.}
-  \label{tab:contenedores}
+  \caption{Tasa de recuperación por estrategia (40~ejecuciones con pérdida de datos,
+           escenarios E1 y E2, por estrategia).}
+  \label{tab:tasa-recuperacion}
 \end{table}
 
-\section{Descripción de los contenedores}
+La diferencia entre B y C se explica íntegramente por las veinte ejecuciones del
+escenario~E2: cuando el atacante destruye el repositorio \gls{sftp}, la
+estrategia~B resulta irrecuperable en el 100\,\% de los casos, mientras que la
+estrategia~C mantiene disponibilidad total gracias a la combinación de Object Lock
+COMPLIANCE y la política de mínimo privilegio \gls{iam}. En el escenario~E1, donde
+el repositorio de \emph{backup} no es objetivo del ataque, ambas estrategias alcanzan
+el 100\,\% de éxito. La Figura~\ref{fig:tasa-rec} representa gráficamente estas
+tres tasas y hace visible el salto cualitativo entre la estrategia~B (50\,\%) y
+la~C (100\,\%), atribuible por completo al escenario~E2.
 
-\subsection{Infraestructura SIEM}
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.85\textwidth]{figura2_tasa_recuperacion}
+  \caption{Tasa de recuperación exitosa por estrategia de \textit{backup}, sobre los
+           escenarios con pérdida de datos (E1 y E2). La estrategia~C alcanza el
+           100\,\% incluso ante la destrucción activa del repositorio.}
+  \label{fig:tasa-rec}
+\end{figure}
 
-El \textbf{wazuh-indexer} es el \emph{Wazuh Indexer}, el \emph{fork} de OpenSearch
-que distribuye Wazuh en su versión~4.7.5. Requiere
-\texttt{vm.max\_map\_count}~$\geq$~262.144 en el \emph{kernel} del \emph{host},
-se configura con \emph{heap} fijo de 1\,GB (\texttt{-Xms1g} \texttt{-Xmx1g}) para
-evitar pausas de recolección de basura de la \gls{jvm}, y se le concede
-\texttt{bootstrap.memory\_lock=true} junto con \emph{ulimits} de \texttt{memlock}
-sin límite y \texttt{nofile} de 65.536.
+\section{Tiempos de detección (\texorpdfstring{$\tdetect$}{T\_detect})}
 
-El \textbf{wazuh-manager} es el núcleo del \gls{siem}: recibe los eventos de los
-agentes, aplica las reglas de correlación y envía las alertas al \emph{indexer}
-mediante Filebeat con \gls{tls} mutuo. La configuración activa \texttt{logall=yes}
-y \texttt{logall\_json=yes} para archivar todos los eventos, no solo los que generan
-alerta. Esto resultó fundamental durante la calibración del laboratorio para
-verificar que los eventos llegaban correctamente aunque no disparasen ninguna regla.
-
-El \textbf{wazuh-dashboard} proporciona la interfaz web de visualización y
-administración, accesible en \url{https://localhost}.
-
-\subsection{Sistemas víctima}
-
-El \textbf{fileserver} es el objetivo principal de los ataques. Ejecuta Ubuntu~24.04
-con los siguientes componentes:
-
-\begin{itemize}
-  \item Servidor \gls{ssh} con autenticación exclusivamente por clave pública
-  (\texttt{PasswordAuthentication no}).
-  \item Samba para compartición de ficheros en red \gls{smb}.
-  \item Agente Wazuh~4.7.5 con \gls{fim} activo en \texttt{/opt/labprueba}
-  con \texttt{realtime="yes"}.
-  \item \restic para la gestión de \emph{backups}.
-  \item Python~3 con la biblioteca \texttt{cryptography} para el cifrador AES-256-GCM.
-  \item \texttt{rsyslog} para que SSH escriba en \texttt{/var/log/auth.log}.
-\end{itemize}
-
-El directorio \texttt{/opt/labprueba} contiene 500~ficheros sintéticos generados
-con contenido aleatorio de \texttt{/dev/urandom} en cinco tipos (txt, pdf, jpg,
-docx, bin) con tamaños entre 1\,KB y 1.100\,KB, produciendo un \emph{dataset} de
-aproximadamente 107\,MB no comprimible.
-
-La \textbf{workstation} es la víctima secundaria, objetivo del escenario~E3. Tiene
-configuración similar al \emph{fileserver} pero con 300~ficheros en
-\texttt{/home/lab/labprueba}.
-
-\subsection{Atacante}
-
-El contenedor \textbf{attacker} se basa en Kali Linux \emph{rolling}. Las
-herramientas adicionales instaladas son:
-
-\begin{itemize}
-  \item \texttt{awscli}: para las operaciones sobre \gls{s3} en el escenario~E2,
-  apuntando al \emph{endpoint} de MinIO con \texttt{--endpoint-url}.
-  \item PowerShell~7.4.6 con Atomic Red Team: empleado en las pruebas exploratorias
-  de contraste con el \emph{framework} MITRE ATT\&CK, cuyo alcance y limitaciones
-  se analizan en el anexo~\ref{anx:art}.
-  \item \texttt{netcat-traditional}: para el canal de exfiltración del escenario~E4.
-\end{itemize}
-
-El atacante también ejecuta un agente Wazuh, permitiendo monitorizar su actividad
-desde el \gls{siem}.
-
-\subsection{Almacenamiento de backups}
-\label{sec:almacenamiento-backups}
-
-El contenedor \textbf{restic-sftp} actúa como servidor de destino para la
-estrategia~B. Expone únicamente el puerto \gls{ssh} y restringe el acceso al
-usuario \texttt{restic-b} mediante autenticación por clave pública.
-
-\textbf{MinIO} implementa un servidor de almacenamiento de objetos compatible con
-la \gls{api} de Amazon \gls{s3}, configurado con dos \emph{buckets}:
-
-\begin{description}
-  \item[\texttt{restic-c}] Protegido con Object Lock COMPLIANCE durante 30~días.
-  El usuario \gls{iam} \texttt{restic-c-user} puede leer y escribir pero
-  \textbf{no borrar}: su política \gls{iam} (\texttt{restic-c-policy.json})
-  deniega explícitamente las operaciones de borrado, lo que (junto con la
-  inmutabilidad de objeto) cierra el vector de los \emph{delete markers}
-  discutido en el capítulo~\ref{C:discusion}.
-  \item[\texttt{restic-b}] Convencional sin protección. El usuario
-  \texttt{restic-b-user} tiene permisos estándar de lectura, escritura y borrado
-  (\texttt{restic-b-policy.json}).
-\end{description}
-
-En cuanto a la imagen, el servidor MinIO y su cliente (\texttt{minio-client},
-usado por el contenedor \texttt{minio-init} para crear \emph{buckets}, usuarios y
-políticas) se fijan a imágenes del espacio de nombres \texttt{bitnamilegacy}
-ancladas por \emph{digest} SHA-256
-(\texttt{bitnamilegacy/minio:2025.7.23\allowbreak{}-debian-12-r5@sha256:\ldots}).
-Esta decisión responde a que las imágenes comunitarias oficiales de MinIO dejaron
-de publicarse en Docker Hub a finales de 2025; anclar por \emph{digest} garantiza
-que la reproducción del laboratorio use exactamente la misma imagen, con
-independencia de cambios posteriores en las etiquetas móviles. El servidor
-almacena sus objetos en \texttt{/bitnami/minio/data}.
-
-\section{Diagrama de red y flujo de comunicación}
-\label{sec:diagrama-red}
-
-El Listado~\ref{lst:diagrama-red} resume, como diagrama textual, la topología
-lógica de la red \texttt{lab-net} y los flujos de comunicación relevantes para el experimento.
-Todos los contenedores comparten la misma red \texttt{bridge} de Docker, lo que
-permite resolución de nombres mediante el DNS interno de Docker además de
-las IPs estáticas asignadas.
-
-\begin{lstlisting}[style=bash, caption={Topología lógica de la red \texttt{lab-net}
-  y flujos de comunicación principales entre contenedores.},
-  label={lst:diagrama-red}]
-                    +-------------------+
-                    |   wazuh-indexer   |  172.20.0.21
-                    |   (OpenSearch)    |
-                    +---------+---------+
-                              ^ 9200 (indexado)
-                              |
-                    +---------+---------+
-                    |   wazuh-manager   |  172.20.0.20
-                    | (motor de reglas) |
-                    +----^----------^---+
-                1514/TCP |          | 1514/TCP  (eventos de agentes)
-             (agente FIM)|          |(agente FIM)
-        +----------------+          +----------------+
-        |                                             |
-+-------+-------+                           +---------+-------+
-|  fileserver    | 172.20.0.10               |  workstation     | 172.20.0.11
-|  (victima E1,E2)|                          |  (victima E3)    |
-+---+--------+---+                           +------------------+
-    |        |  SSH (E3, lateral)                    ^
-    |        +---------------------------------------+
-    |  restic backup (B: SFTP / C: S3 API)
-    v
-+---+-------------+                         +-------------------+
-|  restic-sftp     | 172.20.0.41             |      minio        | 172.20.0.40
-|  (estrategia B)  |                         | (estrategia C,    |
-+------------------+                         |  Object Lock)     |
-                                              +--------------------+
-        ^ SSH / awscli s3                             ^ awscli s3 (bloqueado
-        |  (ataque E2: rm -rf backups)                | por Object Lock)
-        +--------------------+-------------------------+
-                              |
-                    +---------+---------+
-                    |     attacker      |  172.20.0.30
-                    | (Kali + ART + AWS |
-                    |  CLI + netcat)    |
-                    +--------------------+
-\end{lstlisting}
-
-Se distinguen tres tipos de flujo. El primero es el flujo de \emph{monitorización},
-representado por las conexiones \gls{tls} mutuas de los agentes Wazuh del
-\emph{fileserver}, la \emph{workstation} y el propio \emph{attacker} hacia el
-puerto~1514 del \emph{manager}; este flujo está siempre activo con independencia
-del escenario ejecutado. El segundo es el flujo de \emph{backup}, que conecta
-periódicamente el \emph{fileserver} con \texttt{restic-sftp} (estrategia~B) o
-\texttt{minio} (estrategia~C) durante la fase de creación del \emph{snapshot}.
-El tercero es el flujo de \emph{ataque}, iniciado siempre desde el contenedor
-\textbf{attacker} hacia el objetivo correspondiente a cada escenario: el
-\emph{fileserver} en E1 y E2, la \emph{workstation} en E3 (a través de un salto
-SSH intermedio por el \emph{fileserver}), y de nuevo el \emph{fileserver} como
-origen de los datos exfiltrados en E4.
-
-Esta separación conceptual en tres flujos es la que permite que las reglas de
-detección descritas en la sección~\ref{sec:reglas} del capítulo~\ref{C:disenyo}
-puedan asociar de forma no ambigua cada patrón de tráfico o evento \gls{fim} con
-su escenario correspondiente, sin necesidad de inspeccionar el contenido de los
-paquetes de red.
-
-\section{Recursos, límites y comprobaciones de estado}
-\label{sec:recursos-healthchecks}
-
-El control de recursos del \emph{stack} se concentra en el \emph{indexer}, que es
-el componente con mayor consumo: su \gls{jvm} se limita por \emph{heap} fijo
-(\texttt{-Xms1g -Xmx1g}) y se le asignan los \emph{ulimits} de \texttt{memlock}
-(sin límite, necesario para \texttt{bootstrap.memory\_lock=true}) y \texttt{nofile}
-(65.536) que OpenSearch requiere. El resto de servicios no fijan un
-\texttt{mem\_limit} explícito en el \texttt{docker-compose.yml}; en el entorno de
-desarrollo descrito (16\,GB de \gls{ram}) el consumo conjunto en reposo
-($\approx$6\,GB) deja margen suficiente, si bien un despliegue en un \emph{host}
-más ajustado se beneficiaría de añadir límites por servicio.
-
-Las comprobaciones de estado (\texttt{healthcheck}) determinan tanto el orden de
-arranque descrito en la sección~\ref{sec:orden-arranque} como la capacidad del
-\emph{script} \texttt{verify\_lab.sh} de confirmar automáticamente, antes de
-lanzar el experimento, que los contenedores están operativos. Por simplicidad y
-para no depender de herramientas adicionales dentro de cada imagen, todas las
-comprobaciones activas se basan en la apertura del puerto de servicio mediante el
-\emph{builtin} \texttt{/dev/tcp} de \emph{bash}: \texttt{wazuh-indexer} comprueba
-el puerto~9200; \texttt{wazuh-manager}, los puertos~1514 y~55000 simultáneamente;
-y \texttt{minio}, el puerto~9000. Estas comprobaciones verifican que el servicio
-\emph{escucha}, pero no garantizan por sí solas un estado interno completamente
-sano (por ejemplo, un clúster en estado \texttt{yellow} respondería igual que uno
-en estado \texttt{green}); una comprobación más estricta basada en los
-\emph{endpoints} de salud de cada servicio queda apuntada como posible
-refinamiento. Los contenedores \texttt{wazuh-dashboard}, los dos víctima, el
-atacante y \texttt{restic-sftp} no definen \texttt{healthcheck} propio: el primero
-arranca cuando el \emph{manager} está \emph{healthy}, y la disponibilidad de los
-agentes se verifica indirectamente a través del estado \emph{Active} del agente
-Wazuh correspondiente, reportado por la \gls{api} REST del \emph{manager}.
-
-\section{Mecanismo de comunicación runner.jsonl}
-\label{sec:runner}
-
-El volumen Docker \texttt{lab-logs} es el mecanismo de comunicación asíncrona entre
-el contenedor atacante y el \emph{manager} Wazuh. Durante la ejecución de cada
-escenario, el \emph{script} escribe eventos \gls{json} estructurados en
-\texttt{/var/log/lab/\allowbreak{}runner.jsonl}, que el \emph{manager} procesa como
-fuente de \emph{logs} mediante \texttt{localfile} con formato \gls{json}. El
-Listado~\ref{lst:runner-json} muestra un ejemplo de estos eventos para el
-escenario~E2.
-
-\begin{lstlisting}[style=bash, caption={Ejemplo de eventos JSON en runner.jsonl
-  generados por el escenario E2.}, label={lst:runner-json}]
-{"ts":1784804682802708992,"scenario":"E2","event":"phase2_sftp_delete_attempt"}
-{"ts":1784804689210081455,"scenario":"E2","event":"immutability_verified",
- "data":"object_lock_blocked_delete"}
-\end{lstlisting}
-
-Este mecanismo permite la detección de eventos de alto nivel con independencia de
-\texttt{auditd}, con semántica de negocio directamente interpretable y bajo volumen
-(5--15 eventos por ejecución).
-
-\section{Configuración de red y seguridad}
-
-Todos los puertos del laboratorio se exponen al \emph{host} únicamente en la
-interfaz de \emph{loopback} (\texttt{127.0.0.1}), incluido el puerto~443 del
-\texttt{wazuh-dashboard} (\texttt{"127.0.0.1:443:5601"}), de modo que ninguno de
-los servicios queda accesible desde la red local sin un túnel \gls{ssh} explícito.
-La red \texttt{lab-net} se define como una red \emph{bridge} con
-subred~\texttt{172.20.0.0/24}; el laboratorio la mantiene con \texttt{internal:
-false} durante el desarrollo y documenta en el propio \texttt{docker-compose.yml}
-que puede conmutarse a \texttt{internal: true} para un aislamiento total una vez
-configurado. La Tabla~\ref{tab:puertos} enumera los puertos que, con esta
-configuración, el laboratorio expone al \emph{host}.
+La Tabla~\ref{tab:tdetect} muestra la mediana del tiempo de detección por celda
+experimental, junto con el rango intercuartílico [P25--P75].
 
 \begin{table}[ht]
   \centering
   \rowcolors{2}{tabla-par}{white}
-  \begin{tabularx}{\textwidth}{C{2.5cm} C{2cm} C{2cm} X}
+  \begin{tabularx}{\textwidth}{C{1.8cm} C{1cm} S[table-format=2.1] S[table-format=2.1] S[table-format=2.1]}
     \toprule
     \rowcolor{tabla-cabecera}
-    \textcolor{white}{\textbf{Servicio}} &
-    \textcolor{white}{\textbf{Puerto}} &
-    \textcolor{white}{\textbf{Protocolo}} &
-    \textcolor{white}{\textbf{Descripción}} \\
+    \textcolor{white}{\textbf{Celda}} &
+    \textcolor{white}{\textbf{$n$}} &
+    \textcolor{white}{\textbf{Mediana (s)}} &
+    \textcolor{white}{\textbf{P25 (s)}} &
+    \textcolor{white}{\textbf{P75 (s)}} \\
     \midrule
-    wazuh-manager   & 1514  & TCP   & Recepción de eventos de agentes \\
-    wazuh-manager   & 1515  & TCP   & Enrollment de nuevos agentes \\
-    wazuh-manager   & 55000 & TCP   & API REST de Wazuh \\
-    wazuh-dashboard & 443   & HTTPS & Interfaz web del SIEM \\
-    minio           & 9000  & HTTP  & API S3 de MinIO \\
-    minio           & 9001  & HTTP  & Consola web de administración \\
+    E1$\times$A & 20 &  0.4 &  0.4 &  0.4 \\
+    E1$\times$B & 20 &  0.4 &  0.4 &  0.4 \\
+    E1$\times$C & 20 &  0.5 &  0.4 &  0.5 \\
+    E2$\times$A & 20 & 11.2 & 11.0 & 11.6 \\
+    E2$\times$B & 20 &  0.7 &  0.7 &  0.8 \\
+    E2$\times$C & 20 & 11.1 & 10.3 & 11.6 \\
+    E3$\times$A & 20 &  1.5 &  0.9 &  1.8 \\
+    E3$\times$B & 20 &  1.6 &  0.8 &  2.1 \\
+    E3$\times$C & 20 &  1.4 &  1.2 &  2.0 \\
+    E4$\times$A & 20 &  2.0 &  1.6 &  2.9 \\
+    E4$\times$B & 20 &  1.2 &  1.2 &  1.2 \\
+    E4$\times$C & 20 &  1.2 &  1.2 &  1.2 \\
     \bottomrule
   \end{tabularx}
-  \caption{Puertos expuestos al \textit{host} por el laboratorio.}
-  \label{tab:puertos}
+  \caption{Estadísticos de $\tdetect$ por celda experimental (segundos).}
+  \label{tab:tdetect}
 \end{table}
 
-\section{Estrategia de registro y trazabilidad}
-\label{sec:logging}
+Los tiempos de detección son consistentemente bajos, con medianas que oscilan entre
+0.4\,s (E1) y 11.2\,s (E2$\times$A). La variabilidad dentro de cada celda es muy
+reducida. Todas las celdas quedan muy por debajo del umbral de 60~s establecido en
+H2, como ilustra la Figura~\ref{fig:tdetect}, donde la línea discontinua marca
+ese umbral y ninguna barra se aproxima a él.
 
-La capacidad de depurar el comportamiento del laboratorio y de auditar a
-posteriori cada una de las 240~ejecuciones depende de una estrategia de
-registro (\emph{logging}) coherente entre los distintos componentes. El
-laboratorio combina tres niveles de registro con propósitos distintos y
-complementarios.
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{figura3_tdetect}
+  \caption{Tiempo de detección ($\tdetect$) mediano por celda experimental.
+           Barras de error = IQR [P25--P75]. La línea roja discontinua
+           indica el umbral de 60\,s de H2; todas las celdas quedan muy por
+           debajo.}
+  \label{fig:tdetect}
+\end{figure}
 
-El primer nivel es el registro de \emph{infraestructura}, generado por Docker
-Compose y accesible mediante \texttt{docker compose logs}, que captura la
-salida estándar de cada contenedor, incluyendo los mensajes de arranque de
-OpenSearch, Wazuh y MinIO. Este nivel es el que se consulta en primer lugar ante
-un fallo de arranque del \emph{stack}, como los descritos en la
-sección~\ref{sec:limitaciones} siguiente.
+\label{sec:tdetect-e4}
+El escenario más lento es E2, y la razón es ilustrativa del mecanismo de detección.
+En las estrategias A y C la alerta de E2 llega en torno a 11~s: no existe repositorio
+\gls{sftp} que borrar (la estrategia~A no realiza copia y la~C la deposita en
+\gls{s3}/MinIO), por lo que la detección procede del evento estructurado que confirma
+el bloqueo de Object Lock, emitido tras el intento de borrado del \emph{bucket}
+protegido. En la estrategia~B, en cambio, sí hay un repositorio SFTP que el atacante
+borra masivamente, lo que dispara la regla de \gls{fim} sobre \texttt{/srv/backups}
+en menos de un segundo (mediana 0.7~s). El escenario E4 (exfiltración), que en
+iteraciones previas del laboratorio presentaba los tiempos más altos por un artefacto
+de medición, se detecta ahora en torno a 1.2~s gracias a las reglas de sesión SSH y
+de creación del archivo comprimido en \texttt{/tmp}.
 
-El segundo nivel es el registro de \emph{seguridad}, compuesto por los eventos
-que los agentes Wazuh envían al \emph{manager} y que este archiva
-completamente (no solo los que generan alerta, gracias a la configuración
-\texttt{logall\_json=yes} ya mencionada) en \texttt{/var/ossec/logs/archives/}
-del contenedor \texttt{wazuh-manager}. Este archivo completo, distinto del
-subconjunto de eventos que finalmente dispara una regla y llega al
-\emph{indexer} como alerta, fue la herramienta principal durante la fase de
-calibración de umbrales de frecuencia descrita en la
-sección~\ref{sec:reglas} del capítulo~\ref{C:disenyo}, ya que permite
-comparar el volumen total de eventos \gls{fim} generados por un escenario
-frente al subconjunto que efectivamente supera los umbrales configurados.
+\section{Tiempos de recuperación (\texorpdfstring{\acrshort{mttr}}{MTTR})}
 
-El tercer nivel es el registro de \emph{experimento}, correspondiente al
-mecanismo \texttt{runner.jsonl} descrito en la sección~\ref{sec:runner}, que
-constituye la fuente de verdad sobre el progreso interno de cada escenario de
-ataque (por ejemplo, distinguir si una ejecución de E3 falló en el paso de acceso
-\gls{ssh} inicial o en el salto lateral posterior). Este fichero lo consume el
-\emph{manager} Wazuh como fuente de \emph{logs} para las reglas \gls{json} (100212,
-100213 y 100240), y lo utiliza \texttt{experiment\_runner.py} para seguir ese
-progreso interno y, como describe la sección~\ref{sec:control-errores} del
-capítulo~\ref{C:disenyo}, diferenciar un fallo de infraestructura de un resultado
-experimental legítimo. El instante de lanzamiento $\tlaunch$, en cambio, lo
-registra el \emph{runner} con su propio reloj de alta resolución (nanosegundos) en
-el momento de lanzar el ataque, no a partir de este fichero.
+El \gls{mttr}, definido como el tiempo desde el lanzamiento del ataque hasta la
+verificación de la restauración, solo es calculable para las ejecuciones con
+\texttt{recovery\_status = success}. Es una medida del \emph{tiempo total de
+interrupción}, pero conviene interpretarla con cautela: incorpora la duración del
+ataque y la latencia del sondeo de detección (cuantizada en pasos de 5~s), que
+dominan el valor y lo hacen ruidoso. La comparación limpia de la velocidad de los
+\emph{backends} se presenta por separado en la sección~\ref{sec:restauracion-pura}.
+Los resultados por celda se recogen en la Tabla~\ref{tab:mttr}.
 
-La combinación de los tres niveles permite reconstruir de forma completa, para
-cualquiera de las 240~ejecuciones del experimento, la secuencia exacta de
-eventos desde el lanzamiento del escenario hasta el registro final en
-\texttt{raw.csv}, lo que resultó fundamental durante la fase de calibración
-para diagnosticar por qué ciertas reglas no disparaban en el orden esperado.
+\begin{table}[ht]
+  \centering
+  \rowcolors{2}{tabla-par}{white}
+  \begin{tabularx}{\textwidth}{C{1.8cm} C{0.8cm} S[table-format=3.1] S[table-format=2.1] S[table-format=3.1] l}
+    \toprule
+    \rowcolor{tabla-cabecera}
+    \textcolor{white}{\textbf{Celda}} &
+    \textcolor{white}{\textbf{$n$}} &
+    \textcolor{white}{\textbf{Med. (s)}} &
+    \textcolor{white}{\textbf{P25}} &
+    \textcolor{white}{\textbf{P75}} &
+    \textcolor{white}{\textbf{Status}} \\
+    \midrule
+    E1$\times$A &  0 & {---} & {---} & {---}  & impossible \\
+    E1$\times$B & 20 &  12.8 &  12.8 &  12.9  & success \\
+    E1$\times$C & 20 &  12.1 &   7.0 &  12.1  & success \\
+    E2$\times$A &  0 & {---} & {---} & {---}  & impossible \\
+    E2$\times$B &  0 & {---} & {---} & {---}  & impossible \\
+    E2$\times$C & 20 &  16.8 &  16.4 &  20.9  & success \\
+    E3$\times$A &  0 & {---} & {---} & {---}  & impossible \\
+    E3$\times$B & 20 &   7.9 &   7.9 &  12.9  & success \\
+    E3$\times$C & 20 &  12.1 &  12.0 &  12.1  & success \\
+    E4$\times$A &  0 & {---} & {---} & {---}  & impossible \\
+    E4$\times$B & 20 &  10.7 &  10.6 &  10.7  & success \\
+    E4$\times$C & 20 &  14.8 &   9.8 &  14.9  & success \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Estadísticos de \gls{mttr} por celda experimental (segundos).}
+  \label{tab:mttr}
+\end{table}
 
-\section{Limitaciones conocidas del entorno}
-\label{sec:limitaciones}
+La lectura de la Tabla~\ref{tab:mttr} debe hacerse teniendo presente qué celdas
+son interpretables. Las celdas marcadas como \texttt{impossible} (toda la
+estrategia~A, por carecer de copia, y la estrategia~B en el escenario~E2, por
+destrucción del repositorio) no tienen \gls{mttr} definido: no es que la
+recuperación sea lenta, sino que no llega a producirse, y es precisamente esa
+ausencia de valor la que constituye el resultado relevante de la
+hipótesis~H3. Entre las celdas sí recuperables, las medianas se agrupan en un
+rango estrecho (de 7,9 a 16,8~s) y no ordenan de forma limpia las estrategias:
+en E3, por ejemplo, la estrategia~B presenta una mediana menor que la~C pese a
+que su \emph{backend} de restauración es más lento, lo que anticipa que el
+\gls{mttr} extremo a extremo está dominado por la latencia del sondeo de
+detección (cuantizada en pasos de 5~s) y no por la velocidad real de
+restauración. Esta distorsión es la que motiva aislar la métrica de
+restauración pura en la sección~\ref{sec:restauracion-pura}. La
+Figura~\ref{fig:mttr-boxplot} muestra la distribución del \gls{mttr} por
+escenario y estrategia (donde la ausencia de caja para B en E2 refleja las
+veinte recuperaciones imposibles), y la Figura~\ref{fig:mttr-scatter} detalla
+la dispersión repetición a repetición en torno a cada mediana.
 
-El entorno descrito presenta cuatro limitaciones técnicas conocidas,
-derivadas en su mayoría de restricciones del sistema anfitrión o de las
-imágenes de contenedor empleadas. En todos los casos se adoptó una solución
-alternativa que preserva la validez del experimento y que se documenta a
-continuación.
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{figura1_mttr_boxplot}
+  \caption{Distribución del \gls{mttr} por escenario y estrategia de backup.
+           El escenario~E2 no muestra datos para B porque todos los casos
+           resultaron en recuperación imposible.}
+  \label{fig:mttr-boxplot}
+\end{figure}
 
-\textbf{Incompatibilidad de auditd con el kernel CachyOS.} El \emph{kernel}
-linux-cachyos bloquea el acceso al subsistema \emph{netlink audit} desde
-\emph{namespaces} de contenedor incluso con \texttt{privileged:~true}. Esto
-impidió el uso de \texttt{auditd} para la instrumentación de \emph{syscalls}.
-La solución adoptada fue sustituirlo por \gls{fim} en tiempo real más eventos
-\gls{json} estructurados en \texttt{runner.jsonl}, una combinación
-representativa de los despliegues \gls{siem} en producción, donde
-\texttt{auditd} raramente se activa por su \emph{overhead}. Como consecuencia
-de abandonar \texttt{auditd}, los contenedores del laboratorio se ejecutan
-\textbf{sin privilegios} (\texttt{privileged} y \texttt{cap\_add} no se
-utilizan en el \texttt{docker-compose.yml}), lo que reduce la superficie de
-ataque del propio entorno de experimentación.
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{figura4_mttr_scatter}
+  \caption{Variabilidad del \gls{mttr} por repetición. Cada punto representa
+           una ejecución experimental. Las líneas discontinuas indican la mediana.}
+  \label{fig:mttr-scatter}
+\end{figure}
 
-\textbf{Imposibilidad de webhook de fichero en MinIO.} MinIO no permite
-escribir eventos de auditoría directamente a un fichero local, a diferencia
-de otros servicios que vuelcan su registro de acceso en disco. Por ello no
-fue posible derivar la detección de la actividad sobre el \emph{bucket}
-protegido de un registro propio de MinIO, y se optó por instrumentar los
-\emph{scripts} de escenario para que emitieran eventos \gls{json}
-estructurados en \texttt{runner.jsonl}, que Wazuh decodifica directamente.
-Esta decisión mantiene la señal de detección bajo control del propio
-experimento y evita depender del formato de registro interno del servicio.
+\section{Velocidad de restauración}
+\label{sec:restauracion-pura}
 
-\textbf{Gestión de locks de Restic con Object Lock.} Con Object Lock en modo
-COMPLIANCE activo sobre el \emph{bucket} de copias, \restic no puede crear ni
-eliminar los ficheros de bloqueo que emplea por defecto para serializar sus
-operaciones, puesto que el propio mecanismo WORM impide borrarlos una vez
-escritos. Para evitar que las operaciones de copia quedaran bloqueadas de
-forma permanente, se emplea la opción \texttt{--no-lock} en todas las
-invocaciones de \restic realizadas con el usuario \texttt{restic-c-user}.
-La medida es segura en este contexto porque las operaciones sobre el
-repositorio están serializadas por el propio diseño del experimento, sin
-accesos concurrentes que el mecanismo de bloqueo tuviera que coordinar.
+Para comparar la velocidad de los dos \emph{backends} de forma aislada se define el
+\emph{tiempo de restauración puro} como el intervalo entre el inicio de la acción de
+recuperación y la finalización de la restauración ($T_{restore} - T_{first\_action}$),
+excluyendo el ataque y la detección. Esta métrica se mide sobre los escenarios en los
+que ambas estrategias llegan a restaurar (E1, E3 y E4). La Tabla~\ref{tab:restauracion}
+muestra sus estadísticos por celda.
 
-\textbf{rsyslog no disponible por defecto.} Las imágenes mínimas de
-Ubuntu~24.04 empleadas para los contenedores víctima no incluyen
-\texttt{rsyslog}, del que depende la recolección de determinados eventos de
-sistema por parte del agente Wazuh. La limitación se resolvió añadiendo su
-instalación a los \emph{Dockerfiles} correspondientes, de modo que la imagen
-resultante disponga del \emph{daemon} de registro sin requerir pasos manuales
-tras el despliegue.
+\begin{table}[ht]
+  \centering
+  \rowcolors{2}{tabla-par}{white}
+  \begin{tabularx}{\textwidth}{C{1.8cm} C{1cm} S[table-format=1.2] S[table-format=1.2] S[table-format=1.2] X}
+    \toprule
+    \rowcolor{tabla-cabecera}
+    \textcolor{white}{\textbf{Celda}} &
+    \textcolor{white}{\textbf{$n$}} &
+    \textcolor{white}{\textbf{Med. (s)}} &
+    \textcolor{white}{\textbf{P25}} &
+    \textcolor{white}{\textbf{P75}} &
+    \textcolor{white}{\textbf{Backend}} \\
+    \midrule
+    E1$\times$B & 20 & 2.20 & 2.13 & 2.22 & Restic + SFTP \\
+    E1$\times$C & 20 & 1.35 & 1.35 & 1.36 & MinIO (S3) \\
+    E3$\times$B & 20 & 2.22 & 2.18 & 2.23 & Restic + SFTP \\
+    E3$\times$C & 20 & 1.34 & 1.33 & 1.34 & MinIO (S3) \\
+    E4$\times$B & 20 & 2.22 & 2.19 & 2.23 & Restic + SFTP \\
+    E4$\times$C & 20 & 1.33 & 1.33 & 1.35 & MinIO (S3) \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Tiempo de restauración puro ($T_{restore}-T_{first\_action}$) por celda
+           (segundos).}
+  \label{tab:restauracion}
+\end{table}
 
-\section{Gestión de certificados TLS y PKI interna}
-\label{sec:pki}
+La restauración desde MinIO (estrategia~C) es sistemáticamente más rápida que desde
+SFTP (estrategia~B): mediana de 1.34~s frente a 2.22~s, una reducción del
+39.4\,\%. La separación entre ambas distribuciones es total ($\delta$~de Cliff~$=1.0$
+en los tres escenarios), con significación extrema. La diferencia proviene del
+protocolo de acceso al \emph{backend} (S3 frente a SFTP) y no del mecanismo de
+inmutabilidad.
 
-La protección mediante \gls{tls} en el laboratorio se limita, de forma
-deliberada, al propio \emph{stack} \gls{siem}: las conexiones entre
-\texttt{wazuh-manager}, \texttt{wazuh-indexer} y \texttt{wazuh-dashboard} usan
-certificados emitidos por una autoridad de certificación (\gls{ca}) propia del
-laboratorio, generada íntegramente mediante el \emph{script}
-\texttt{generate\_certs.sh} (Listado~\ref{lst:reproduccion} del anexo~C), sin
-depender de ninguna entidad certificadora externa, lo que es coherente con el
-requisito de reproducibilidad completa sin credenciales de terceros ya
-justificado en la sección~\ref{sec:destruccion-backups} del
-capítulo~\ref{C:estado_arte} para la elección de MinIO. Los agentes Wazuh
-desplegados en los contenedores víctima, de ataque y de \emph{backup}
-(\emph{fileserver}, \emph{workstation}, \emph{attacker} y
-\texttt{restic-sftp}) \textbf{no} presentan un certificado \gls{tls}
-individual: se autentican frente al \emph{manager} mediante el mecanismo de
-\emph{enrollment} propio de Wazuh sobre el puerto~1515 descrito en la
-Tabla~\ref{tab:contenedores}, que registra cada agente bajo un nombre y grupo
-(\texttt{WAZUH\_AGENT\_NAME}, \texttt{WAZUH\_AGENT\_GROUP}) y a partir de ahí
-cifra el canal de eventos hacia el puerto~1514 con una clave compartida
-derivada del registro, no con un par de claves \gls{tls} por agente.
+\section{Análisis estadístico (H1)}
+\label{sec:estadistica-h1}
 
-La jerarquía de certificados generada por \texttt{generate\_certs.sh} consta,
-por tanto, de una \gls{ca} raíz autofirmada y cuatro certificados de servidor
-emitidos por ella: uno para \texttt{wazuh-indexer}, uno para el usuario
-administrador del propio \emph{indexer} (necesario para inicializar el
-\emph{plugin} de seguridad de OpenSearch), uno para \texttt{wazuh-manager} (usado por Filebeat para el envío de eventos al \emph{indexer}) y uno
-para \texttt{wazuh-dashboard}. Todos los certificados se generan con una
-validez de diez años, adecuada para un entorno de laboratorio de vida corta;
-un despliegue en producción de un patrón similar de \gls{ca} propia sí
-requeriría un proceso de rotación periódica de certificados no implementado en
-el laboratorio actual.
+La hipótesis~H1 se planteó originalmente sobre el \gls{mttr} extremo a extremo. Medido
+así, el resultado es mixto y ruidoso (Tabla~\ref{tab:mann-whitney-mttr}): en E1 la
+estrategia~C es significativamente más rápida ($p = 0.001$), pero en E3 y E4 no hay
+diferencia significativa, e incluso la mediana de C es mayor por efecto de la
+latencia de detección incorporada al MTTR. El \gls{mttr} total, por tanto, no separa
+limpiamente las estrategias.
 
-La comunicación entre el \emph{manager} y el \emph{indexer} OpenSearch sigue el
-mismo patrón mediante el módulo \texttt{opensearch-security}, cuya
-inicialización mediante \texttt{securityadmin.sh} (detallada en el
-Listado~\ref{lst:reproduccion} del anexo~C) es precisamente el paso más
-delicado del arranque del laboratorio: debe ejecutarse una única vez, después de
-que el \emph{indexer} esté operativo pero antes de que el resto del
-\emph{stack} intente conectarse, lo que justifica la división en dos etapas del
-arranque descrita en el listado de reproducción del anexo~C y en la
-sección~\ref{sec:orden-arranque} siguiente.
+\begin{table}[ht]
+  \centering
+  \rowcolors{2}{tabla-par}{white}
+  \begin{tabularx}{\textwidth}{C{1.8cm} S[table-format=2.1] S[table-format=2.1] S[table-format=3.0] S[table-format=1.3] S[table-format=-1.2] X}
+    \toprule
+    \rowcolor{tabla-cabecera}
+    \textcolor{white}{\textbf{Escenario}} &
+    \textcolor{white}{\textbf{Med. B (s)}} &
+    \textcolor{white}{\textbf{Med. C (s)}} &
+    \textcolor{white}{\textbf{U}} &
+    \textcolor{white}{\textbf{$p$-valor}} &
+    \textcolor{white}{\textbf{Cliff $\delta$}} &
+    \textcolor{white}{\textbf{Efecto}} \\
+    \midrule
+    E1 & 12.8 & 12.1 & 318 & 0.001 &  0.59 & grande \\
+    E2 & {---}& 16.8 & {---} & {---} & {---} & B: impossible \\
+    E3 &  7.9 & 12.1 & 180 & 0.598 & -0.10 & negligible \\
+    E4 & 10.7 & 14.8 & 154 & 0.218 & -0.23 & pequeño \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Mann-Whitney U y delta de Cliff para el \gls{mttr} total B~vs.~C.}
+  \label{tab:mann-whitney-mttr}
+\end{table}
 
-\section{Orden de arranque y dependencias}
-\label{sec:orden-arranque}
+La comparación relevante es la de la \emph{velocidad de restauración pura}
+(sección~\ref{sec:restauracion-pura}), que aísla el efecto del \emph{backend}. La
+Tabla~\ref{tab:mann-whitney} recoge el contraste B~vs.~C de esa métrica por escenario
+y agregado.
 
-Docker Compose gestiona las dependencias mediante \texttt{depends\_on} con
-\texttt{condition:~\allowbreak{}service\_healthy}:
+\begin{table}[ht]
+  \centering
+  \rowcolors{2}{tabla-par}{white}
+  \begin{tabularx}{\textwidth}{C{1.6cm} S[table-format=1.2] S[table-format=1.2] S[table-format=4.0] c S[table-format=1.2] X}
+    \toprule
+    \rowcolor{tabla-cabecera}
+    \textcolor{white}{\textbf{Escenario}} &
+    \textcolor{white}{\textbf{Med. B}} &
+    \textcolor{white}{\textbf{Med. C}} &
+    \textcolor{white}{\textbf{U}} &
+    \textcolor{white}{\textbf{$p$-valor}} &
+    \textcolor{white}{\textbf{Cliff $\delta$}} &
+    \textcolor{white}{\textbf{IC 95\,\% (B$-$C)}} \\
+    \midrule
+    E1              & 2.20 & 1.35 & 400 & $<10^{-7}$ & 1.00 & [0.78, 0.87] \\
+    E3              & 2.22 & 1.34 & 400 & $<10^{-7}$ & 1.00 & [0.86, 0.90] \\
+    E4              & 2.22 & 1.33 & 400 & $<10^{-7}$ & 1.00 & [0.87, 0.90] \\
+    Agregado        & 2.22 & 1.34 & 3600 & $<10^{-20}$ & 1.00 & [0.86, 0.88] \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Mann-Whitney U, delta de Cliff e intervalo \textit{bootstrap} al 95\,\%
+           para la velocidad de restauración B~vs.~C.}
+  \label{tab:mann-whitney}
+\end{table}
 
-\begin{enumerate}
-  \item El \textbf{indexer} arranca y espera hasta que el puerto~9200 responde.
-  \item El \textbf{manager} arranca cuando el indexer está \emph{healthy}.
-  \item El resto de contenedores arrancan en paralelo cuando el manager está listo.
-  \item MinIO y \textbf{minio-init} siguen una cadena de dependencia independiente.
-\end{enumerate}
+\textbf{Reformulada sobre la velocidad de restauración, la hipótesis~H1 se confirma}:
+la estrategia con almacenamiento inmutable restaura un 39.4\,\% más rápido que la
+convencional, con un tamaño del efecto máximo ($\delta = 1.0$) e intervalos de
+confianza que no contienen el cero en ningún escenario. Conviene subrayar que esta
+ventaja proviene del protocolo S3 frente a SFTP, no de Object Lock en sí; la
+aportación de Object Lock es de disponibilidad, no de velocidad, como muestra el
+análisis de H3.
 
-El \emph{script} \texttt{post\_start.sh} realiza la inicialización del
-\emph{plugin} de seguridad de OpenSearch, la creación de grupos de agentes y la
-verificación de que todos los agentes están en estado \emph{Active}. El tiempo
-total de arranque es de aproximadamente tres minutos.
+\section{Análisis estadístico (H2)}
+\label{sec:estadistica-h2}
+
+\textbf{La hipótesis H2 se confirma}. Los tiempos de detección medianos oscilan entre
+0.4 y 11.2~segundos, en todos los casos muy por debajo del umbral de 60~s. La
+instrumentación con un \gls{siem} permite alertar sobre un ataque en curso en
+cuestión de segundos, en contraste con los tiempos de permanencia (\emph{dwell time})
+de meses que la industria reporta de forma recurrente para incidentes no
+instrumentados. Conviene precisar que ambas cifras no son directamente comparables (el \emph{dwell time} mide el intervalo desde la intrusión inicial hasta su
+descubrimiento, mientras que $\tdetect$ mide el tiempo hasta alertar sobre una fase
+de ataque ya iniciada y con reglas diseñadas para ella) , pero el contraste ilustra la
+transformación cualitativa que aporta la detección automatizada.
+
+Dentro del laboratorio, $\tdetect$ presenta baja variabilidad y depende del escenario
+y de las reglas, no de la estrategia de \emph{backup}, lo que es coherente con el
+diseño.
+
+\section{Análisis estadístico (H3)}
+\label{sec:estadistica-h3}
+
+\begin{table}[ht]
+  \centering
+  \rowcolors{2}{tabla-par}{white}
+  \begin{tabularx}{\textwidth}{X C{2cm} C{2cm} C{2.5cm} C{1.5cm}}
+    \toprule
+    \rowcolor{tabla-cabecera}
+    \textcolor{white}{\textbf{Comparación}} &
+    \textcolor{white}{\textbf{B (éxito)}} &
+    \textcolor{white}{\textbf{C (éxito)}} &
+    \textcolor{white}{\textbf{$p$-valor}} &
+    \textcolor{white}{\textbf{Sig.}} \\
+    \midrule
+    E2 (Destrucción de copias)          & 0/20  & 20/20 & $< 0.001$ & Sí \\
+    Global (E1+E2, 40 ejec.\ por estr.)   & 20/40 & 40/40 & $< 0.001$ & Sí \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Test exacto de Fisher para la comparación de tasas de recuperación
+           exitosa B~vs.~C.}
+  \label{tab:fisher}
+\end{table}
+
+El test exacto de Fisher (Tabla~\ref{tab:fisher}) arroja $p < 0.001$ tanto para la comparación del
+escenario~E2 específicamente (0/20 vs. 20/20) como para la comparación global sobre
+los escenarios con pérdida de datos (20/40 vs. 40/40). \textbf{La hipótesis H3 se
+confirma con evidencia estadística muy sólida}: la combinación de Object Lock
+COMPLIANCE y mínimo privilegio \gls{iam} proporciona una ventaja cualitativa (no solo
+cuantitativa) sobre el \emph{backup} convencional. La magnitud de la diferencia en E2
+es la máxima posible: 0\,\% vs. 100\,\% de tasa de éxito.
+
+\section{Síntesis narrativa por escenario}
+\label{sec:sintesis-escenarios}
+
+Esta sección reorganiza los resultados por escenario, con el objetivo de facilitar una
+lectura orientada a la pregunta que un responsable de seguridad se plantearía ante
+cada táctica de ataque.
+
+En \textbf{E1 (cifrado local, T1486)}, las tres estrategias detectan el cifrado de
+forma casi inmediata (mediana~$\tdetect \approx 0.4$~s, gracias a la regla de
+\gls{fim} sobre la creación masiva de ficheros con extensión de cifrado). Para las
+estrategias con \emph{backup}, el tiempo total de recuperación es similar
+(mediana~MTTR 12.1--12.8~s), si bien la restauración pura de C es más rápida
+(1.35~s frente a 2.20~s). Es el escenario donde el repositorio de \emph{backup} nunca
+es objetivo directo, por lo que ambas estrategias recuperan el 100\,\% de los casos.
+
+En \textbf{E2 (destrucción de copias, T1490)} se concentra la evidencia central del
+trabajo. La estrategia~B no tiene ningún valor de MTTR calculable porque las veinte
+ejecuciones resultan en \texttt{recovery\_status = impossible}: el atacante borra el
+repositorio SFTP y la recuperación es inviable. La estrategia~C completa las veinte
+recuperaciones (mediana~MTTR 16.8~s). La detección es más lenta que en E1
+(mediana~$\tdetect \approx 11$~s en A y C) porque, al no existir repositorio SFTP que
+borrar, la alerta procede del evento que confirma el bloqueo de Object Lock tras el
+intento de borrado del \emph{bucket} protegido; en la estrategia~B, el borrado masivo
+del repositorio SFTP se detecta en 0.7~s.
+
+En \textbf{E3 (movimiento lateral, T1021.004)} la detección se produce en torno a
+1.5~s mediante la regla de sesión SSH aceptada con origen en el \emph{fileserver}
+(regla~100220), sin depender de umbrales de frecuencia. El \gls{mttr} total muestra
+aquí a la estrategia~B con una mediana menor que la~C (7.9~s frente a 12.1~s), pero
+esta diferencia es un artefacto de la cuantización del sondeo de detección y no es
+significativa; la restauración pura, en cambio, es más rápida en~C.
+
+En \textbf{E4 (exfiltración, T1041)} la detección es rápida (mediana~$\tdetect
+\approx 1.2$~s), combinando la regla de sesión SSH con origen en el atacante y la de
+creación del archivo comprimido en \texttt{/tmp}. Es un cambio sustancial respecto a
+iteraciones previas del laboratorio, en las que este escenario presentaba los tiempos
+de detección más altos por un artefacto en el canal de exfiltración.
+
+\section{Verificación de integridad}
+
+En las 140~ejecuciones con \texttt{recovery\_status = success} (60~de estrategia~B y
+80~de estrategia~C), la variable \texttt{integrity\_match} toma el valor
+\texttt{true} en todos los casos. No se observó ninguna restauración exitosa con
+integridad fallida, lo que confirma que \restic garantiza la integridad byte a byte
+de los datos restaurados en las condiciones del experimento.
+
+\section{Resumen del contraste de hipótesis}
+
+La Tabla~\ref{tab:hipotesis} recapitula, para las tres hipótesis, su enunciado,
+el resultado del contraste y la evidencia estadística que lo respalda.
+
+\needspace{12\baselineskip}
+\begin{table}[ht]
+  \centering
+  \rowcolors{2}{tabla-par}{white}
+  \begin{tabularx}{\textwidth}{C{1.5cm} X C{2.8cm} C{2.5cm}}
+    \toprule
+    \rowcolor{tabla-cabecera}
+    \textcolor{white}{\textbf{Hip.}} &
+    \textcolor{white}{\textbf{Enunciado}} &
+    \textcolor{white}{\textbf{Resultado}} &
+    \textcolor{white}{\textbf{Evidencia}} \\
+    \midrule
+    H1 & C reduce el tiempo de restauración vs.\ B &
+        Confirmada (velocidad de restauración) & $\delta=1.0$, $p<10^{-20}$ \\
+    H2 & $\tdetect < 60$~s mediante SIEM &
+        Confirmada & Mediana 0.4--11.2~s \\
+    H3 & C $>$ tasa éxito B ante destrucción &
+        Confirmada & Fisher $p < 0.001$ \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Resumen del contraste de hipótesis del experimento.}
+  \label{tab:hipotesis}
+\end{table}
 
 \end{document}
