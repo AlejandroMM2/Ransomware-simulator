@@ -24,6 +24,8 @@ eventos \gls{json} estructurados emitidos por los \emph{scripts} de escenario en
 
 \section{Reglas del escenario E1 (cifrado local)}
 
+El Listado~\ref{lst:reglas-e1} reproduce las reglas de este grupo.
+
 \begin{lstlisting}[language=XML,
   caption={Reglas de detección para el escenario E1 (T1486).},
   label={lst:reglas-e1}]
@@ -61,13 +63,14 @@ añadido (regla base 554): requieren acumular, respectivamente, 15~creaciones en
 \texttt{.locked} o \texttt{.crypto}, ambos dentro de una ventana de 60~segundos,
 antes de disparar. La regla 100201, en cambio, no depende de frecuencia alguna:
 dispara con un único evento de creación de fichero ejecutable en \texttt{/tmp}, lo
-que la convierte en la señal más temprana disponible dentro de este grupo
---- el \emph{payload} del atacante ---, a costa de un mayor riesgo de falso
+que la convierte en la señal más temprana disponible dentro de este grupo (el \emph{payload} del atacante) , a costa de un mayor riesgo de falso
 positivo si un proceso legítimo crea \emph{scripts} temporales con esa extensión.
 Este escenario no emplea eventos del \emph{runner}; su detección es íntegramente
 por \gls{fim}.
 
 \section{Reglas del escenario E2 (destrucción de copias)}
+
+El Listado~\ref{lst:reglas-e2} reproduce las reglas de este grupo.
 
 \begin{lstlisting}[language=XML,
   caption={Reglas de detección para el escenario E2 (T1490).},
@@ -99,9 +102,8 @@ por \gls{fim}.
 \end{lstlisting}
 
 Este es el grupo más crítico del laboratorio, tanto por el nivel de severidad
-asignado --- los niveles 13 a 15 son los más altos de las once reglas
-\emph{custom}, reservados para eventos que implican pérdida irreversible de datos
---- como por su papel central en la evidencia experimental discutida en el
+asignado (los niveles 13 a 15 son los más altos de las once reglas
+\emph{custom}, reservados para eventos que implican pérdida irreversible de datos) como por su papel central en la evidencia experimental discutida en el
 capítulo~\ref{C:discusion}. La regla 100211 replica sobre el repositorio de
 \emph{backup} la lógica de frecuencia de la 100200, pero sobre eventos de
 \emph{borrado} (regla base 553) y con un umbral más bajo (5~eventos en 60~s),
@@ -111,11 +113,13 @@ una operación que no debería producirse nunca en condiciones normales. Las reg
 resultados posibles del intento de destrucción del \emph{bucket} protegido: la
 100212 es la confirmación positiva de que Object Lock funcionó como se esperaba,
 mientras que la 100213, de nivel~15 (el máximo del laboratorio), está reservada
-para un escenario que --- de dispararse --- indicaría un fallo grave de la
+para un escenario que (de dispararse) indicaría un fallo grave de la
 protección WORM y que, de hecho, no se activó en ninguna de las 240~ejecuciones del
 experimento principal.
 
 \section{Reglas del escenario E3 (movimiento lateral)}
+
+El Listado~\ref{lst:reglas-e3} reproduce las reglas de este grupo.
 
 \begin{lstlisting}[language=XML,
   caption={Reglas de detección para el escenario E3 (T1021.004).},
@@ -149,6 +153,8 @@ dirección \gls{ip}: la 100220 detecta la sesión aceptada cuyo origen es el
 disparan de forma binaria, sin depender de umbrales de frecuencia.
 
 \section{Reglas del escenario E4 (exfiltración)}
+
+El Listado~\ref{lst:reglas-e4} reproduce las reglas de este grupo.
 
 \begin{lstlisting}[language=XML,
   caption={Reglas de detección para el escenario E4 (T1041).},

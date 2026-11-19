@@ -18,8 +18,8 @@ Entre todas las amenazas del panorama actual de ciberseguridad, el
 ransomware ocupa un lugar destacado por su capacidad de causar daños
 inmediatos, tangibles y difícilmente reversibles. Según el informe
 IBM Cost of a Data Breach~2024~\cite{ibmcost2024}, el ciclo de vida medio
-de una brecha --- el tiempo que transcurre desde que se produce hasta que
-se identifica y contiene --- se situó en 258~días, de los cuales cerca de
+de una brecha (el tiempo que transcurre desde que se produce hasta que
+se identifica y contiene) se situó en 258~días, de los cuales cerca de
 200 corresponden únicamente a su identificación. Las consecuencias
 económicas son devastadoras: ese mismo informe cifra el coste medio global
 de una brecha en 4,88~millones de dólares, cifra que para los incidentes
@@ -53,8 +53,8 @@ de datos}
 
 La motivación técnica descrita anteriormente convive con una presión
 regulatoria creciente que refuerza la relevancia práctica de este trabajo.
-La Directiva (UE) 2022/2555, conocida como NIS2, entró en aplicación en
-octubre de 2024 y amplía sustancialmente el número de sectores obligados a
+La Directiva (UE) 2022/2555, conocida como NIS2~\cite{nis2}, entró en
+aplicación en octubre de 2024 y amplía sustancialmente el número de sectores obligados a
 implantar medidas de gestión de riesgos de ciberseguridad, incluyendo de
 forma explícita la gestión de copias de seguridad y los planes de
 recuperación ante desastres entre las medidas mínimas exigidas a las
@@ -63,16 +63,17 @@ de hasta el 2\,\% de la facturación anual global para las entidades
 esenciales.
 
 En el ámbito español, el Esquema Nacional de Seguridad (ENS), regulado por
-el Real Decreto 311/2022, establece para las administraciones públicas
+el Real Decreto 311/2022~\cite{ens2022}, establece para las administraciones
+públicas
 requisitos específicos sobre copias de seguridad (medida \texttt{mp.info.6})
 y sobre continuidad del servicio (dimensión \texttt{op.cont}, que incluye
 las pruebas periódicas del plan de continuidad en \texttt{op.cont.3}). Ambos marcos comparten un principio de fondo
 directamente relevante para este \pfg: no basta con \emph{tener} una copia
 de seguridad, sino que debe demostrarse que dicha copia sigue estando
 disponible e íntegra frente a un adversario activo, no solo frente a fallos
-accidentales de hardware. Esta distinción --- disponibilidad frente a un
+accidentales de hardware. Esta distinción (disponibilidad frente a un
 fallo pasivo frente a disponibilidad frente a un adversario que
-intenta activamente destruir la copia --- es precisamente el eje
+intenta activamente destruir la copia) es precisamente el eje
 experimental de este trabajo y se retomará con evidencia empírica en el
 capítulo~\ref{C:discusion}.
 
@@ -214,9 +215,8 @@ presentación de resultados (capítulo~\ref{C:discusion}).
 
   \item[Vector de acceso inicial] El experimento asume que el atacante ya
   dispone de acceso inicial al fileserver (mediante credenciales SSH
-  comprometidas). No se modelan las fases previas de la cadena de ataque
-  --- \textit{phishing}, explotación de vulnerabilidades públicas o compra
-  de accesos en mercados clandestinos --- que en un incidente real
+  comprometidas). No se modelan las fases previas de la cadena de ataque (\textit{phishing}, explotación de vulnerabilidades públicas o compra
+  de accesos en mercados clandestinos) que en un incidente real
   preceden a la fase de impacto aquí estudiada.
 
   \item[Alcance del análisis SIEM] La instrumentación se centra
@@ -237,19 +237,49 @@ presentación de resultados (capítulo~\ref{C:discusion}).
 
 \section{Estructura del documento}
 
-El capítulo~\ref{C:estado_arte} revisa el estado del arte en ransomware,
-estrategias de backup y sistemas \gls{siem}. El
-capítulo~\ref{C:arquitectura} describe la arquitectura del laboratorio y
-las decisiones de diseño. El capítulo~\ref{C:disenyo} detalla el diseño
-experimental y la metodología estadística. El
-capítulo~\ref{C:resultados} presenta y analiza los resultados. El
-capítulo~\ref{C:discusion} discute las implicaciones de los resultados y
-sus limitaciones. El capítulo~\ref{C:conclusiones} concluye el trabajo y
-propone líneas de trabajo futuro.
+El resto de la memoria se organiza en seis capítulos y tres anexos, cuyo
+contenido se resume a continuación.
 
-Los anexos incluyen las reglas Wazuh completas (Anexo~A), el análisis de
-cobertura de Atomic Red Team (Anexo~B) y la estructura del repositorio con
-instrucciones de reproducción (Anexo~C).
+El capítulo~\ref{C:estado_arte} revisa el estado del arte. Recorre la
+evolución del ransomware y sus técnicas de impacto, las estrategias de
+copia de seguridad (con especial atención a la inmutabilidad y al modelo
+WORM) y el papel de los sistemas \gls{siem} en la detección. Este capítulo
+fija el marco conceptual sobre el que se apoyan las decisiones de diseño
+del resto del trabajo.
+
+El capítulo~\ref{C:arquitectura} describe la arquitectura del laboratorio.
+Detalla los contenedores que componen el entorno, la topología de red, el
+despliegue de Wazuh como \gls{siem} y la configuración de las copias
+inmutables con Object Lock. Se justifican, además, las principales
+decisiones de diseño y las alternativas descartadas.
+
+El capítulo~\ref{C:disenyo} presenta el diseño experimental. Define las
+hipótesis, los cuatro escenarios de ataque, las estrategias de copia
+comparadas y las variables medidas, y describe la metodología estadística
+empleada (pruebas no paramétricas, tamaño del efecto y remuestreo) para
+contrastar las hipótesis a partir de las 240~ejecuciones.
+
+El capítulo~\ref{C:resultados} presenta y analiza los resultados obtenidos,
+organizados en torno a las tres hipótesis: velocidad de restauración,
+tiempo de detección y recuperabilidad frente a la destrucción de las
+copias. Cada bloque se acompaña de las tablas y figuras que resumen la
+evidencia cuantitativa.
+
+El capítulo~\ref{C:discusion} discute las implicaciones de esos resultados,
+los sitúa frente a la literatura revisada y analiza en qué medida son
+generalizables más allá del laboratorio. Expone también las limitaciones
+del estudio y las amenazas a su validez.
+
+El capítulo~\ref{C:conclusiones} cierra el trabajo. Recapitula en qué
+medida se han cumplido los objetivos, destaca la aportación principal y
+propone las líneas de trabajo futuro que se abren a partir de lo
+observado.
+
+Por último, los anexos recogen el material de apoyo: el
+anexo~\ref{anx:reglas} reproduce las reglas Wazuh completas, el
+anexo~\ref{anx:art} documenta el análisis de cobertura de Atomic Red Team
+y el anexo~\ref{anx:repositorio} describe la estructura del repositorio y
+las instrucciones para reproducir el laboratorio.
 
 \section{Planificación y presupuesto}
 
@@ -289,34 +319,79 @@ si fuera necesario repetir alguna celda.
 
 Este \pfg tiene asignados 18~créditos ECTS, lo que equivale a
 450~horas de trabajo según el factor de 25~horas por crédito del
-\gls{ects}.
+\gls{ects}. El trabajo se desarrolló a lo largo de unas veinte semanas,
+entre julio y mediados de noviembre de 2026. La
+Tabla~\ref{tab:planificacion} reparte esas 450~horas entre las diez fases
+del proyecto, y el diagrama de Gantt de la Tabla~\ref{tab:gantt} muestra su
+distribución temporal y los solapamientos entre fases.
 
 \begin{table}[!h]
   \centering
-  \caption[Planificación temporal del TFG por fases.]
-          {Planificación temporal del TFG por fases.}
-  \label{tab:planificacion}
-  \begin{tabularx}{\textwidth}{X C{2.5cm} C{2cm}}
+  \begin{tabularx}{\textwidth}{X C{2.8cm} C{2cm}}
     \toprule
     \rowcolor{tabla-cabecera}
     \textcolor{white}{\textbf{Fase}} &
     \textcolor{white}{\textbf{Período}} &
     \textcolor{white}{\textbf{Horas}} \\
     \midrule
-    Revisión bibliográfica y estado del arte & Feb--Mar 2026 & 60 \\
-    Diseño de la arquitectura               & Mar 2026      & 40 \\
-    Implementación del laboratorio           & Mar--Abr 2026 & 90 \\
-    Desarrollo de escenarios y playbooks     & Abr--May 2026 & 50 \\
-    Calibración y validación                 & May 2026      & 40 \\
-    Ejecución del experimento                & Jul 2026      & 20 \\
-    Análisis estadístico y figuras           & Jul 2026      & 30 \\
-    Contraste con Atomic Red Team            & Jul 2026      & 20 \\
-    Redacción de la memoria                  & May--Jul 2026 & 80 \\
-    Revisión y entrega                       & Jul 2026      & 20 \\
+    Revisión bibliográfica y estado del arte & Jul 2026      & 60 \\
+    Diseño de la arquitectura               & Jul 2026      & 40 \\
+    Implementación del laboratorio           & Ago--Sep 2026 & 90 \\
+    Desarrollo de escenarios y playbooks     & Ago--Sep 2026 & 50 \\
+    Calibración y validación                 & Sep 2026      & 40 \\
+    Ejecución del experimento                & Sep 2026      & 20 \\
+    Análisis estadístico y figuras           & Sep--Oct 2026 & 30 \\
+    Contraste con Atomic Red Team            & Oct 2026      & 20 \\
+    Redacción de la memoria                  & Oct--Nov 2026 & 80 \\
+    Revisión y entrega                       & Nov 2026      & 20 \\
     \midrule
-    \textbf{Total}                           & \textbf{22 semanas} & \textbf{450} \\
+    \textbf{Total}                           & \textbf{$\approx$20 semanas} & \textbf{450} \\
     \bottomrule
   \end{tabularx}
+  \caption[Planificación temporal del TFG por fases.]
+          {Planificación temporal del TFG por fases.}
+  \label{tab:planificacion}
+\end{table}
+
+El cronograma anterior se visualiza en el diagrama de Gantt de la
+Tabla~\ref{tab:gantt}, donde cada columna representa una quincena del
+período julio--noviembre de 2026 y las celdas sombreadas indican las
+quincenas en que cada fase estuvo activa. El diagrama evidencia el carácter
+incremental del trabajo: la implementación del laboratorio solapa con el
+desarrollo de los escenarios, y la redacción de la memoria avanza en
+paralelo a las últimas fases de análisis, en lugar de concentrarse al final.
+
+\begin{table}[!h]
+  \centering
+  \small
+  \setlength{\tabcolsep}{3.5pt}
+  \renewcommand{\arraystretch}{1.25}
+  \begin{tabular}{|>{\raggedright\arraybackslash}p{5.1cm}|*{9}{c|}}
+    \hline
+    \cellcolor{tabla-cabecera}\textcolor{white}{\textbf{Fase}} &
+    \multicolumn{2}{c|}{\cellcolor{tabla-cabecera}\textcolor{white}{\textbf{Jul}}} &
+    \multicolumn{2}{c|}{\cellcolor{tabla-cabecera}\textcolor{white}{\textbf{Ago}}} &
+    \multicolumn{2}{c|}{\cellcolor{tabla-cabecera}\textcolor{white}{\textbf{Sep}}} &
+    \multicolumn{2}{c|}{\cellcolor{tabla-cabecera}\textcolor{white}{\textbf{Oct}}} &
+    \multicolumn{1}{c|}{\cellcolor{tabla-cabecera}\textcolor{white}{\textbf{Nov}}} \\
+    \hline
+    Revisión bibliográfica y estado del arte & \cellcolor{uned-azul}&\cellcolor{uned-azul}& & & & & & & \\ \hline
+    Diseño de la arquitectura                & &\cellcolor{uned-azul}&\cellcolor{uned-azul}& & & & & & \\ \hline
+    Implementación del laboratorio           & & &\cellcolor{uned-azul}&\cellcolor{uned-azul}&\cellcolor{uned-azul}& & & & \\ \hline
+    Desarrollo de escenarios y playbooks     & & & &\cellcolor{uned-azul}&\cellcolor{uned-azul}& & & & \\ \hline
+    Calibración y validación                 & & & & &\cellcolor{uned-azul}&\cellcolor{uned-azul}& & & \\ \hline
+    Ejecución del experimento                & & & & & &\cellcolor{uned-azul}& & & \\ \hline
+    Análisis estadístico y figuras           & & & & & &\cellcolor{uned-azul}&\cellcolor{uned-azul}& & \\ \hline
+    Contraste con Atomic Red Team            & & & & & & &\cellcolor{uned-azul}& & \\ \hline
+    Redacción de la memoria                  & & & & & & &\cellcolor{uned-azul}&\cellcolor{uned-azul}&\cellcolor{uned-azul}\\ \hline
+    Revisión y entrega                       & & & & & & & & &\cellcolor{uned-azul}\\ \hline
+  \end{tabular}
+  \caption[Diagrama de Gantt de la planificación del TFG.]
+          {Diagrama de Gantt de la planificación del TFG. Cada par de
+           columnas corresponde a las dos quincenas de un mes (noviembre solo
+           incluye la primera); las celdas sombreadas marcan las quincenas en
+           que cada fase estuvo activa.}
+  \label{tab:gantt}
 \end{table}
 
 \subsection{Presupuesto}
@@ -327,9 +402,6 @@ por lo que el coste de licencias es cero.
 
 \begin{table}[!h]
   \centering
-  \caption[Resumen del presupuesto total del proyecto.]
-          {Resumen del presupuesto total del proyecto.}
-  \label{tab:presupuesto}
   \begin{tabularx}{\textwidth}{X C{3cm}}
     \toprule
     \rowcolor{tabla-cabecera}
@@ -347,9 +419,33 @@ por lo que el coste de licencias es cero.
     \textbf{Total con IVA}  & \textbf{17.047,27} \\
     \bottomrule
   \end{tabularx}
+  \caption[Resumen del presupuesto total del proyecto.]
+          {Resumen del presupuesto total del proyecto.}
+  \label{tab:presupuesto}
 \end{table}
 
-El presupuesto total asciende a \textbf{17.047,27~€ con IVA}, cifra que
+Cada una de las partidas de la Tabla~\ref{tab:presupuesto} se detalla a
+continuación. La partida de \textbf{recursos humanos} es la dominante y
+recoge las 450~horas de trabajo del autor, valoradas a 25~€/h (tarifa de
+referencia de un perfil técnico junior en ciberseguridad), lo que supone
+11.250~€, a los que se suman 600~€ correspondientes a 10~horas de
+dedicación del tutor a 60~€/h en labores de dirección y revisión; en total,
+11.850~€. La partida de \textbf{hardware e infraestructura} (401~€) no
+imputa el coste íntegro del equipo, sino su \emph{amortización}: refleja la
+fracción de la vida útil del equipo de sobremesa empleado como \emph{host}
+del laboratorio (y del equipamiento auxiliar de apoyo) que corresponde a los
+meses de desarrollo, más el consumo eléctrico asociado a las campañas de
+ejecución. La partida de \textbf{software y licencias} es de 0~€ porque todo
+el \emph{stack} empleado (Docker, Wazuh, MinIO, Restic, Python y las
+bibliotecas de análisis) es software libre y gratuito, una decisión de
+diseño coherente con el objetivo de reproducibilidad sin dependencia de
+credenciales de pago. Por último, los \textbf{costes indirectos} (1.837,65~€)
+aplican un 15\,\% sobre la suma de las partidas anteriores para cubrir
+gastos generales no imputables de forma directa (conectividad, espacio de
+trabajo, material fungible), y sobre el subtotal resultante se aplica el
+IVA del 21\,\% vigente en España.
+
+El presupuesto total asciende, así, a \textbf{17.047,27~€ con IVA}, cifra que
 refleja el coste real de contratación de un perfil técnico junior en
 ciberseguridad para el desarrollo completo del proyecto.
 

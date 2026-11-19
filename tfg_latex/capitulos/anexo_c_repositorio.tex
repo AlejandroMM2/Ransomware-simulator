@@ -6,8 +6,12 @@
 
 \section{Organización de ficheros}
 
-El repositorio del proyecto se organiza de la siguiente manera (se omiten
-ficheros auxiliares y las claves privadas, excluidas del control de versiones):
+El repositorio del proyecto es público y está alojado en GitHub, en la
+dirección \url{https://github.com/AlejandroMM2/Ransomware-simulator}. Reúne
+en un único árbol el código de infraestructura, el código de experimentación,
+el conjunto de datos y la propia memoria, y se organiza de la siguiente manera
+(se omiten ficheros auxiliares y las claves privadas, excluidas del control de
+versiones):
 
 \begin{lstlisting}[language=bash,
   caption={Árbol de directorios del repositorio del proyecto.},
@@ -91,8 +95,8 @@ pfg_contenedores/
     `-- portada.tex
 \end{lstlisting}
 
-Cada uno de los directorios de primer nivel agrupa una responsabilidad
-diferenciada del proyecto, siguiendo el principio de separar claramente el
+Como refleja el Listado~\ref{lst:repo}, cada uno de los directorios de primer
+nivel agrupa una responsabilidad diferenciada del proyecto, siguiendo el principio de separar claramente el
 código de infraestructura, el código de experimentación y la documentación
 final. El directorio \texttt{dockerfiles/} contiene las definiciones de imagen
 de los cuatro contenedores que requieren personalización más allá de una imagen
@@ -109,8 +113,8 @@ permisos entre las estrategias~B y~C descrita en el capítulo~\ref{C:arquitectur
 las claves \gls{ssh} generadas específicamente para el laboratorio (de las que
 solo se versionan las partes públicas y los ficheros \texttt{authorized\_keys};
 las claves privadas se excluyen mediante \texttt{.gitignore}), la configuración
-completa de Wazuh --- incluido el fichero \texttt{local\_rules.xml} reproducido
-íntegramente en el anexo~\ref{anx:reglas} --- y la integración opcional de
+completa de Wazuh (incluido el fichero \texttt{local\_rules.xml} reproducido
+íntegramente en el anexo~\ref{anx:reglas}) y la integración opcional de
 Telegram descrita en la sección~\ref{sec:telegram} del capítulo~\ref{C:discusion}.
 
 Los directorios \texttt{scripts/} y \texttt{simulators/} separan
@@ -205,27 +209,67 @@ bash 00_ejecutar_todo.sh --csv datos/raw_experimento.csv
 
 \section{Requisitos del sistema}
 
-Para ejecutar el laboratorio se necesitan los siguientes recursos mínimos:
+Para ejecutar el laboratorio se necesitan los recursos mínimos que se detallan
+a continuación. Las cifras indicadas son las empleadas en el entorno de
+desarrollo y validación; valores inferiores pueden funcionar para pruebas
+aisladas, pero no se garantiza que soporten la campaña completa de
+240~ejecuciones sin degradación.
 
 \begin{itemize}
-  \item \textbf{CPU}: procesador x86\_64 de cuatro o más núcleos.
-  \item \textbf{RAM}: 16\,GB (el stack en reposo consume $\approx$6\,GB).
-  \item \textbf{Disco}: 30\,GB libres para imágenes Docker y volúmenes.
-  \item \textbf{SO}: Linux con kernel $\geq$ 5.15. En distribuciones con kernel
-    estándar el laboratorio puede complementarse con reglas de \texttt{auditd}.
-  \item \textbf{Docker}: Engine~24.x o superior, Compose~v2.x.
+  \item \textbf{CPU}: procesador x86\_64 de cuatro o más núcleos. El factor
+    limitante no es la carga sostenida, sino el arranque simultáneo de los
+    nueve contenedores (en particular, la inicialización del \emph{indexer}
+    basado en OpenSearch), que es intensiva en CPU durante el primer minuto.
+
+  \item \textbf{RAM}: 16\,GB. El \emph{stack} en reposo consume
+    $\approx$6\,GB, dominados por el \emph{indexer}; el margen restante
+    absorbe los picos de la ejecución de los escenarios y evita que el
+    sistema recurra a \emph{swap}, que falsearía las medidas de tiempo.
+
+  \item \textbf{Disco}: 30\,GB libres para imágenes Docker, volúmenes
+    persistentes y los repositorios de \emph{backup} que genera cada
+    ejecución. Conviene que sea almacenamiento SSD, ya que la latencia
+    de disco influye directamente en el tiempo de restauración medido.
+
+  \item \textbf{SO}: Linux con kernel $\geq$ 5.15. En distribuciones con
+    kernel estándar el laboratorio puede complementarse con reglas de
+    \texttt{auditd}; en el equipo de desarrollo (CachyOS) esta vía no estuvo
+    disponible por la incompatibilidad documentada en el
+    capítulo~\ref{C:arquitectura}, lo que motivó la instrumentación basada en
+    \gls{fim}.
+
+  \item \textbf{Docker}: Engine~24.x o superior y Compose~v2.x, necesarios
+    para la sintaxis declarativa del \texttt{docker-compose.yml} y para las
+    comprobaciones de estado (\emph{healthchecks}) que ordenan el arranque.
+
   \item \textbf{Python}: 3.10 o superior con las bibliotecas
-    \texttt{scipy}, \texttt{numpy}, \texttt{pandas} y
-    \texttt{matplotlib} para el análisis estadístico.
+    \texttt{scipy}, \texttt{numpy}, \texttt{pandas} y \texttt{matplotlib},
+    que el \emph{script} maestro de análisis emplea para las pruebas
+    estadísticas y la generación de las figuras de la memoria.
 \end{itemize}
 
 \section{Licencia}
 
-El código del laboratorio se publica bajo la licencia MIT, que permite
-su uso, modificación y distribución con la única condición de mantener
-el aviso de copyright original. La memoria del PFG se publica bajo la
-licencia Creative Commons BY-NC-SA~4.0, que permite compartirla y
-adaptarla con atribución, sin uso comercial y manteniendo la misma
-licencia en los trabajos derivados.
+El proyecto adopta un esquema de doble licencia que distingue entre el código
+y la documentación, alojado todo ello en el repositorio público
+\url{https://github.com/AlejandroMM2/Ransomware-simulator}.
+
+El código del laboratorio (ficheros de \emph{Docker}, \emph{scripts} de
+orquestación, simuladores de escenario y código de análisis) se publica bajo
+la licencia MIT. Se trata de una licencia permisiva que autoriza el uso, la
+modificación y la distribución del código, incluso con fines comerciales, con
+la única condición de mantener el aviso de \emph{copyright} y el texto de la
+licencia originales. Esta elección busca maximizar la reutilización del
+laboratorio como base para otros trabajos, docentes o de investigación, sin
+imponer restricciones que dificulten su adopción.
+
+La memoria del PFG, en cambio, se publica bajo la licencia Creative Commons
+Atribución-NoComercial-CompartirIgual~4.0 (CC~BY-NC-SA~4.0), que permite
+compartirla y adaptarla siempre que se cite la autoría, no se haga un uso
+comercial del material y las obras derivadas se distribuyan bajo esta misma
+licencia. La distinción responde a la distinta naturaleza de ambos
+artefactos: mientras que para el código interesa la máxima libertad de
+reutilización, para el texto académico se prefiere preservar la atribución y
+evitar su explotación comercial sin consentimiento del autor.
 
 \end{document}

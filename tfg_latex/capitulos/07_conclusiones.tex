@@ -19,7 +19,7 @@ Los objetivos específicos definidos en la introducción se han alcanzado, con e
 alcance acotado que se indica para OE6:
 
 \begin{description}
-  \item[OE1 — Laboratorio reproducible] Se ha diseñado e implementado un
+  \item[OE1 (Laboratorio reproducible)] Se ha diseñado e implementado un
   laboratorio de nueve contenedores Docker completamente automatizado, publicado
   como software libre en GitHub, que puede reproducirse en cualquier máquina Linux
   con Docker instalado en aproximadamente diez minutos. Una comprobación preliminar
@@ -27,27 +27,27 @@ alcance acotado que se indica para OE6:
   entorno distinto al de desarrollo (sección~\ref{sec:vm-reproducibilidad} del
   capítulo~\ref{C:discusion}).
 
-  \item[OE2 — Tres estrategias de backup] Se han implementado y comparado las
+  \item[OE2 (Tres estrategias de backup)] Se han implementado y comparado las
   tres estrategias definidas: control negativo sin backup, repositorio \restic
   sobre SFTP convencional y repositorio \restic sobre MinIO con Object Lock
   COMPLIANCE combinado con una política de mínimo privilegio. Las diferencias entre
   estrategias han quedado completamente cuantificadas.
 
-  \item[OE3 — Cuatro escenarios de ataque] Se han implementado y validado los
+  \item[OE3 (Cuatro escenarios de ataque)] Se han implementado y validado los
   cuatro escenarios correspondientes a las técnicas T1486, T1490, T1021.004 y
   T1041 de la matriz MITRE ATT\&CK.
 
-  \item[OE4 — Instrumentación con Wazuh] Se han desarrollado 11~reglas de
+  \item[OE4 (Instrumentación con Wazuh)] Se han desarrollado 11~reglas de
   detección custom que cubren los cuatro escenarios mediante \gls{fim}, eventos de
   sesión \gls{ssh} y eventos \gls{json} estructurados, adaptadas a las limitaciones
   técnicas del entorno.
 
-  \item[OE5 — Diseño factorial y análisis estadístico] Se han ejecutado las
+  \item[OE5 (Diseño factorial y análisis estadístico)] Se han ejecutado las
   240~ejecuciones del diseño factorial, en orden aleatorio con semilla fija, y se
   han analizado los resultados con Mann-Whitney~U, delta de Cliff, \emph{bootstrap}
   de intervalos de confianza y test exacto de Fisher.
 
-  \item[OE6 — Contraste con Atomic Red Team] Se ha analizado la cobertura de
+  \item[OE6 (Contraste con Atomic Red Team)] Se ha analizado la cobertura de
   Atomic Red Team para las cuatro técnicas estudiadas (anexo~\ref{anx:art}). El
   resultado acota el alcance de este objetivo: solo T1486 dispone de pruebas
   atómicas aplicables a Linux, y estas no reproducen el volumen de un cifrado de
@@ -56,7 +56,7 @@ alcance acotado que se indica para OE6:
   las cuatro técnicas se ejercitan mediante los escenarios propios del
   laboratorio, y la validación externa completa se plantea como trabajo futuro.
 
-  \item[OE7 — Publicación como software libre] El repositorio completo está
+  \item[OE7 (Publicación como software libre)] El repositorio completo está
   disponible públicamente en GitHub con documentación suficiente para la
   reproducción independiente de los experimentos.
 \end{description}
@@ -85,10 +85,10 @@ reporta de forma recurrente para incidentes no instrumentados.
 \textbf{La hipótesis H2 se confirma}: la instrumentación con un \gls{siem}
 transforma cualitativamente la capacidad de respuesta ante incidentes de ransomware,
 pasando de una detección que puede tardar meses a una que tarda segundos. Conviene
-matizar que ambas cifras no son directamente comparables --- el \emph{dwell time}
+matizar que ambas cifras no son directamente comparables (el \emph{dwell time}
 mide el intervalo desde la intrusión inicial hasta su descubrimiento, mientras que
 $\tdetect$ mide el tiempo hasta alertar sobre una fase de ataque ya iniciada y con
-reglas diseñadas para ella ---, pero el contraste ilustra la transformación
+reglas diseñadas para ella) , pero el contraste ilustra la transformación
 cualitativa que aporta la detección automatizada.
 
 \subsection{Sobre la hipótesis H3}
@@ -229,8 +229,8 @@ de este estudio:
 \label{sec:difusion}
 
 Más allá de su contribución como trabajo de investigación experimental, el
-diseño modular del laboratorio --- ya destacado como característica principal
-en la sección anterior --- le confiere un valor potencial como recurso docente
+diseño modular del laboratorio (ya destacado como característica principal
+en la sección anterior) le confiere un valor potencial como recurso docente
 para la formación en ciberseguridad defensiva. La separación entre la
 infraestructura de orquestación (\texttt{scripts/}), la lógica de cada
 escenario de ataque (\texttt{simulators/}) y las reglas de detección

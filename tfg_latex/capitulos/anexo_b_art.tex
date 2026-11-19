@@ -23,7 +23,7 @@ patrón que la regla espera. Ambos aspectos se detallan a continuación.
 \section{Cobertura por técnica}
 
 \begin{description}
-  \item[T1486 --- Data Encrypted for Impact] Es la única de las cuatro técnicas con
+  \item[T1486 (Data Encrypted for Impact)] Es la única de las cuatro técnicas con
   pruebas atómicas aplicables a Linux, basadas en utilidades estándar de cifrado
   del sistema. Estas pruebas cifran un número reducido de ficheros, mientras que
   las reglas~100200 y~100202 del laboratorio están diseñadas para detectar
@@ -34,31 +34,30 @@ patrón que la regla espera. Ambos aspectos se detallan a continuación.
   (aparición de ejecutables en \texttt{/tmp}), y de dónde se depositen los ficheros
   resultantes.
 
-  \item[T1490 --- Inhibit System Recovery] Las pruebas atómicas disponibles están
+  \item[T1490 (Inhibit System Recovery)] Las pruebas atómicas disponibles están
   orientadas a mecanismos de recuperación propios de Windows y no contemplan la
   destrucción de un repositorio de \emph{backup} remoto en Linux, que es la
   variante relevante para este trabajo. La técnica se ejercita, por tanto,
   únicamente mediante el escenario~E2 del propio laboratorio.
 
-  \item[T1021.004 --- Remote Services: SSH] Las pruebas atómicas existentes están
+  \item[T1021.004 (Remote Services: SSH)] Las pruebas atómicas existentes están
   orientadas a habilitar el servicio \gls{ssh} en hipervisores ESXi y se ejecutan
   desde Windows; no emulan un salto lateral entre dos servidores Linux con una
   clave comprometida. La técnica se ejercita mediante el escenario~E3.
 
-  \item[T1041 --- Exfiltration Over C2 Channel] Las pruebas atómicas existentes
+  \item[T1041 (Exfiltration Over C2 Channel)] Las pruebas atómicas existentes
   están orientadas a Windows; no hay pruebas aplicables a Linux. La técnica se
   ejercita mediante el escenario~E4.
 \end{description}
 
 \section{Resumen de cobertura}
 
+La Tabla~\ref{tab:art} sintetiza, para cada una de las cuatro técnicas, la
+disponibilidad de pruebas atómicas en Linux, el mecanismo con el que se
+ejercita en este trabajo y las reglas Wazuh asociadas.
+
 \begin{table}[!h]
   \centering
-  \caption[Cobertura de Atomic Red Team para las técnicas del laboratorio.]
-          {Cobertura de Atomic Red Team en Linux para las técnicas del
-           laboratorio y mecanismo con el que se ejercita cada una en este
-           trabajo.}
-  \label{tab:art}
   \rowcolors{2}{tabla-par}{white}
   \begin{tabularx}{\textwidth}{C{2.2cm} C{3.2cm} X C{2.6cm}}
     \toprule
@@ -74,6 +73,11 @@ patrón que la regla espera. Ambos aspectos se detallan a continuación.
     T1041     & No (Windows)              & Escenario E4                     & 100230, 100231, 100240 \\
     \bottomrule
   \end{tabularx}
+  \caption[Cobertura de Atomic Red Team para las técnicas del laboratorio.]
+          {Cobertura de Atomic Red Team en Linux para las técnicas del
+           laboratorio y mecanismo con el que se ejercita cada una en este
+           trabajo.}
+  \label{tab:art}
 \end{table}
 
 \section{Limitaciones de la validación externa}

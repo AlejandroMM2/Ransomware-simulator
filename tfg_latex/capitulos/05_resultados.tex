@@ -9,9 +9,13 @@
 \section{Descripción del experimento ejecutado}
 \label{sec:experimento-ejecutado}
 
-El experimento completo se ejecutó el 24~de julio de 2026 sobre el \emph{host}
+El experimento completo se ejecutó en una única campaña sobre el \emph{host}
 \texttt{pc-pantu}. El \emph{runner} completó las 240~ejecuciones en aproximadamente
-cinco horas y media sin ningún error ni ejecución parcial. El fichero CSV resultante
+cinco horas y media sin ningún error ni ejecución parcial. Tanto el código del
+laboratorio como el conjunto de datos analizado en este capítulo están
+disponibles públicamente en el repositorio del proyecto,
+\url{https://github.com/AlejandroMM2/Ransomware-simulator}, cuya estructura
+completa se describe en el anexo~\ref{anx:repositorio}. El fichero CSV resultante
 contiene exactamente 240~filas, veinte por cada una de las doce celdas del factorial
 ($4~\text{escenarios} \times 3~\text{estrategias} \times 20~\text{repeticiones}$),
 ejecutadas en orden aleatorio con semilla fija para evitar que la estrategia quede
@@ -36,15 +40,12 @@ La recuperación solo tiene sentido en los escenarios que provocan pérdida de d
 (E1, cifrado local; y E2, destrucción de copias). Los escenarios E3 (movimiento
 lateral) y E4 (exfiltración) no cifran ni destruyen los datos del \emph{fileserver},
 de modo que su tasa de recuperación no es interpretable y se excluye de este
-análisis; en ellos la variable de interés es la detección. La tabla~\ref{tab:tasa-recuperacion}
+análisis; en ellos la variable de interés es la detección. La Tabla~\ref{tab:tasa-recuperacion}
 presenta la tasa de recuperación exitosa (\texttt{recovery\_status = success}) por
 estrategia sobre las 40~ejecuciones con pérdida de datos de cada una.
 
 \begin{table}[ht]
   \centering
-  \caption{Tasa de recuperación por estrategia (40~ejecuciones con pérdida de datos,
-           escenarios E1 y E2, por estrategia).}
-  \label{tab:tasa-recuperacion}
   \rowcolors{2}{tabla-par}{white}
   \begin{tabularx}{\textwidth}{X C{2.2cm} C{2cm} C{2.4cm} C{2.4cm}}
     \toprule
@@ -55,11 +56,14 @@ estrategia sobre las 40~ejecuciones con pérdida de datos de cada una.
     \textcolor{white}{\textbf{Impossible}} &
     \textcolor{white}{\textbf{Tasa de éxito}} \\
     \midrule
-    A — Sin backup              & 40 &  0 & 40 &   0\,\% \\
-    B — Restic + SFTP           & 40 & 20 & 20 &  50\,\% \\
-    C — MinIO Object Lock       & 40 & 40 &  0 & 100\,\% \\
+    A (Sin backup)              & 40 &  0 & 40 &   0\,\% \\
+    B (Restic + SFTP)           & 40 & 20 & 20 &  50\,\% \\
+    C (MinIO Object Lock)       & 40 & 40 &  0 & 100\,\% \\
     \bottomrule
   \end{tabularx}
+  \caption{Tasa de recuperación por estrategia (40~ejecuciones con pérdida de datos,
+           escenarios E1 y E2, por estrategia).}
+  \label{tab:tasa-recuperacion}
 \end{table}
 
 La diferencia entre B y C se explica íntegramente por las veinte ejecuciones del
@@ -68,7 +72,9 @@ estrategia~B resulta irrecuperable en el 100\,\% de los casos, mientras que la
 estrategia~C mantiene disponibilidad total gracias a la combinación de Object Lock
 COMPLIANCE y la política de mínimo privilegio \gls{iam}. En el escenario~E1, donde
 el repositorio de \emph{backup} no es objetivo del ataque, ambas estrategias alcanzan
-el 100\,\% de éxito.
+el 100\,\% de éxito. La Figura~\ref{fig:tasa-rec} representa gráficamente estas
+tres tasas y hace visible el salto cualitativo entre la estrategia~B (50\,\%) y
+la~C (100\,\%), atribuible por completo al escenario~E2.
 
 \begin{figure}[ht]
   \centering
@@ -81,13 +87,11 @@ el 100\,\% de éxito.
 
 \section{Tiempos de detección (\texorpdfstring{$\tdetect$}{T\_detect})}
 
-La tabla~\ref{tab:tdetect} muestra la mediana del tiempo de detección por celda
+La Tabla~\ref{tab:tdetect} muestra la mediana del tiempo de detección por celda
 experimental, junto con el rango intercuartílico [P25--P75].
 
 \begin{table}[ht]
   \centering
-  \caption{Estadísticos de $\tdetect$ por celda experimental (segundos).}
-  \label{tab:tdetect}
   \rowcolors{2}{tabla-par}{white}
   \begin{tabularx}{\textwidth}{C{1.8cm} C{1cm} S[table-format=2.1] S[table-format=2.1] S[table-format=2.1]}
     \toprule
@@ -112,12 +116,15 @@ experimental, junto con el rango intercuartílico [P25--P75].
     E4$\times$C & 20 &  1.2 &  1.2 &  1.2 \\
     \bottomrule
   \end{tabularx}
+  \caption{Estadísticos de $\tdetect$ por celda experimental (segundos).}
+  \label{tab:tdetect}
 \end{table}
 
 Los tiempos de detección son consistentemente bajos, con medianas que oscilan entre
 0.4\,s (E1) y 11.2\,s (E2$\times$A). La variabilidad dentro de cada celda es muy
 reducida. Todas las celdas quedan muy por debajo del umbral de 60~s establecido en
-H2.
+H2, como ilustra la Figura~\ref{fig:tdetect}, donde la línea discontinua marca
+ese umbral y ninguna barra se aproxima a él.
 
 \begin{figure}[ht]
   \centering
@@ -151,12 +158,10 @@ interrupción}, pero conviene interpretarla con cautela: incorpora la duración 
 ataque y la latencia del sondeo de detección (cuantizada en pasos de 5~s), que
 dominan el valor y lo hacen ruidoso. La comparación limpia de la velocidad de los
 \emph{backends} se presenta por separado en la sección~\ref{sec:restauracion-pura}.
-Los resultados por celda se recogen en la tabla~\ref{tab:mttr}.
+Los resultados por celda se recogen en la Tabla~\ref{tab:mttr}.
 
 \begin{table}[ht]
   \centering
-  \caption{Estadísticos de \gls{mttr} por celda experimental (segundos).}
-  \label{tab:mttr}
   \rowcolors{2}{tabla-par}{white}
   \begin{tabularx}{\textwidth}{C{1.8cm} C{0.8cm} S[table-format=3.1] S[table-format=2.1] S[table-format=3.1] l}
     \toprule
@@ -182,7 +187,28 @@ Los resultados por celda se recogen en la tabla~\ref{tab:mttr}.
     E4$\times$C & 20 &  14.8 &   9.8 &  14.9  & success \\
     \bottomrule
   \end{tabularx}
+  \caption{Estadísticos de \gls{mttr} por celda experimental (segundos).}
+  \label{tab:mttr}
 \end{table}
+
+La lectura de la Tabla~\ref{tab:mttr} debe hacerse teniendo presente qué celdas
+son interpretables. Las celdas marcadas como \texttt{impossible} (toda la
+estrategia~A, por carecer de copia, y la estrategia~B en el escenario~E2, por
+destrucción del repositorio) no tienen \gls{mttr} definido: no es que la
+recuperación sea lenta, sino que no llega a producirse, y es precisamente esa
+ausencia de valor la que constituye el resultado relevante de la
+hipótesis~H3. Entre las celdas sí recuperables, las medianas se agrupan en un
+rango estrecho (de 7,9 a 16,8~s) y no ordenan de forma limpia las estrategias:
+en E3, por ejemplo, la estrategia~B presenta una mediana menor que la~C pese a
+que su \emph{backend} de restauración es más lento, lo que anticipa que el
+\gls{mttr} extremo a extremo está dominado por la latencia del sondeo de
+detección (cuantizada en pasos de 5~s) y no por la velocidad real de
+restauración. Esta distorsión es la que motiva aislar la métrica de
+restauración pura en la sección~\ref{sec:restauracion-pura}. La
+Figura~\ref{fig:mttr-boxplot} muestra la distribución del \gls{mttr} por
+escenario y estrategia (donde la ausencia de caja para B en E2 refleja las
+veinte recuperaciones imposibles), y la Figura~\ref{fig:mttr-scatter} detalla
+la dispersión repetición a repetición en torno a cada mediana.
 
 \begin{figure}[ht]
   \centering
@@ -208,14 +234,11 @@ Para comparar la velocidad de los dos \emph{backends} de forma aislada se define
 \emph{tiempo de restauración puro} como el intervalo entre el inicio de la acción de
 recuperación y la finalización de la restauración ($T_{restore} - T_{first\_action}$),
 excluyendo el ataque y la detección. Esta métrica se mide sobre los escenarios en los
-que ambas estrategias llegan a restaurar (E1, E3 y E4). La tabla~\ref{tab:restauracion}
+que ambas estrategias llegan a restaurar (E1, E3 y E4). La Tabla~\ref{tab:restauracion}
 muestra sus estadísticos por celda.
 
 \begin{table}[ht]
   \centering
-  \caption{Tiempo de restauración puro ($T_{restore}-T_{first\_action}$) por celda
-           (segundos).}
-  \label{tab:restauracion}
   \rowcolors{2}{tabla-par}{white}
   \begin{tabularx}{\textwidth}{C{1.8cm} C{1cm} S[table-format=1.2] S[table-format=1.2] S[table-format=1.2] X}
     \toprule
@@ -235,20 +258,23 @@ muestra sus estadísticos por celda.
     E4$\times$C & 20 & 1.33 & 1.33 & 1.35 & MinIO (S3) \\
     \bottomrule
   \end{tabularx}
+  \caption{Tiempo de restauración puro ($T_{restore}-T_{first\_action}$) por celda
+           (segundos).}
+  \label{tab:restauracion}
 \end{table}
 
 La restauración desde MinIO (estrategia~C) es sistemáticamente más rápida que desde
 SFTP (estrategia~B): mediana de 1.34~s frente a 2.22~s, una reducción del
 39.4\,\%. La separación entre ambas distribuciones es total ($\delta$~de Cliff~$=1.0$
 en los tres escenarios), con significación extrema. La diferencia proviene del
-protocolo de acceso al \emph{backend} —S3 frente a SFTP— y no del mecanismo de
+protocolo de acceso al \emph{backend} (S3 frente a SFTP) y no del mecanismo de
 inmutabilidad.
 
-\section{Análisis estadístico — H1}
+\section{Análisis estadístico (H1)}
 \label{sec:estadistica-h1}
 
 La hipótesis~H1 se planteó originalmente sobre el \gls{mttr} extremo a extremo. Medido
-así, el resultado es mixto y ruidoso (tabla~\ref{tab:mann-whitney-mttr}): en E1 la
+así, el resultado es mixto y ruidoso (Tabla~\ref{tab:mann-whitney-mttr}): en E1 la
 estrategia~C es significativamente más rápida ($p = 0.001$), pero en E3 y E4 no hay
 diferencia significativa, e incluso la mediana de C es mayor por efecto de la
 latencia de detección incorporada al MTTR. El \gls{mttr} total, por tanto, no separa
@@ -256,8 +282,6 @@ limpiamente las estrategias.
 
 \begin{table}[ht]
   \centering
-  \caption{Mann-Whitney U y delta de Cliff para el \gls{mttr} total B~vs.~C.}
-  \label{tab:mann-whitney-mttr}
   \rowcolors{2}{tabla-par}{white}
   \begin{tabularx}{\textwidth}{C{1.8cm} S[table-format=2.1] S[table-format=2.1] S[table-format=3.0] S[table-format=1.3] S[table-format=-1.2] X}
     \toprule
@@ -276,18 +300,17 @@ limpiamente las estrategias.
     E4 & 10.7 & 14.8 & 154 & 0.218 & -0.23 & pequeño \\
     \bottomrule
   \end{tabularx}
+  \caption{Mann-Whitney U y delta de Cliff para el \gls{mttr} total B~vs.~C.}
+  \label{tab:mann-whitney-mttr}
 \end{table}
 
 La comparación relevante es la de la \emph{velocidad de restauración pura}
 (sección~\ref{sec:restauracion-pura}), que aísla el efecto del \emph{backend}. La
-tabla~\ref{tab:mann-whitney} recoge el contraste B~vs.~C de esa métrica por escenario
+Tabla~\ref{tab:mann-whitney} recoge el contraste B~vs.~C de esa métrica por escenario
 y agregado.
 
 \begin{table}[ht]
   \centering
-  \caption{Mann-Whitney U, delta de Cliff e intervalo \textit{bootstrap} al 95\,\%
-           para la velocidad de restauración B~vs.~C.}
-  \label{tab:mann-whitney}
   \rowcolors{2}{tabla-par}{white}
   \begin{tabularx}{\textwidth}{C{1.6cm} S[table-format=1.2] S[table-format=1.2] S[table-format=4.0] c S[table-format=1.2] X}
     \toprule
@@ -306,6 +329,9 @@ y agregado.
     Agregado        & 2.22 & 1.34 & 3600 & $<10^{-20}$ & 1.00 & [0.86, 0.88] \\
     \bottomrule
   \end{tabularx}
+  \caption{Mann-Whitney U, delta de Cliff e intervalo \textit{bootstrap} al 95\,\%
+           para la velocidad de restauración B~vs.~C.}
+  \label{tab:mann-whitney}
 \end{table}
 
 \textbf{Reformulada sobre la velocidad de restauración, la hipótesis~H1 se confirma}:
@@ -316,7 +342,7 @@ ventaja proviene del protocolo S3 frente a SFTP, no de Object Lock en sí; la
 aportación de Object Lock es de disponibilidad, no de velocidad, como muestra el
 análisis de H3.
 
-\section{Análisis estadístico — H2}
+\section{Análisis estadístico (H2)}
 \label{sec:estadistica-h2}
 
 \textbf{La hipótesis H2 se confirma}. Los tiempos de detección medianos oscilan entre
@@ -324,24 +350,20 @@ análisis de H3.
 instrumentación con un \gls{siem} permite alertar sobre un ataque en curso en
 cuestión de segundos, en contraste con los tiempos de permanencia (\emph{dwell time})
 de meses que la industria reporta de forma recurrente para incidentes no
-instrumentados. Conviene precisar que ambas cifras no son directamente comparables
-—el \emph{dwell time} mide el intervalo desde la intrusión inicial hasta su
+instrumentados. Conviene precisar que ambas cifras no son directamente comparables (el \emph{dwell time} mide el intervalo desde la intrusión inicial hasta su
 descubrimiento, mientras que $\tdetect$ mide el tiempo hasta alertar sobre una fase
-de ataque ya iniciada y con reglas diseñadas para ella—, pero el contraste ilustra la
+de ataque ya iniciada y con reglas diseñadas para ella) , pero el contraste ilustra la
 transformación cualitativa que aporta la detección automatizada.
 
 Dentro del laboratorio, $\tdetect$ presenta baja variabilidad y depende del escenario
 y de las reglas, no de la estrategia de \emph{backup}, lo que es coherente con el
 diseño.
 
-\section{Análisis estadístico — H3}
+\section{Análisis estadístico (H3)}
 \label{sec:estadistica-h3}
 
 \begin{table}[ht]
   \centering
-  \caption{Test exacto de Fisher para la comparación de tasas de recuperación
-           exitosa B~vs.~C.}
-  \label{tab:fisher}
   \rowcolors{2}{tabla-par}{white}
   \begin{tabularx}{\textwidth}{X C{2cm} C{2cm} C{2.5cm} C{1.5cm}}
     \toprule
@@ -352,18 +374,21 @@ diseño.
     \textcolor{white}{\textbf{$p$-valor}} &
     \textcolor{white}{\textbf{Sig.}} \\
     \midrule
-    E2 --- Destrucción de copias          & 0/20  & 20/20 & $< 0.001$ & Sí \\
+    E2 (Destrucción de copias)          & 0/20  & 20/20 & $< 0.001$ & Sí \\
     Global (E1+E2, 40 ejec.\ por estr.)   & 20/40 & 40/40 & $< 0.001$ & Sí \\
     \bottomrule
   \end{tabularx}
+  \caption{Test exacto de Fisher para la comparación de tasas de recuperación
+           exitosa B~vs.~C.}
+  \label{tab:fisher}
 \end{table}
 
-El test exacto de Fisher arroja $p < 0.001$ tanto para la comparación del
+El test exacto de Fisher (Tabla~\ref{tab:fisher}) arroja $p < 0.001$ tanto para la comparación del
 escenario~E2 específicamente (0/20 vs. 20/20) como para la comparación global sobre
 los escenarios con pérdida de datos (20/40 vs. 40/40). \textbf{La hipótesis H3 se
 confirma con evidencia estadística muy sólida}: la combinación de Object Lock
-COMPLIANCE y mínimo privilegio \gls{iam} proporciona una ventaja cualitativa —no solo
-cuantitativa— sobre el \emph{backup} convencional. La magnitud de la diferencia en E2
+COMPLIANCE y mínimo privilegio \gls{iam} proporciona una ventaja cualitativa (no solo
+cuantitativa) sobre el \emph{backup} convencional. La magnitud de la diferencia en E2
 es la máxima posible: 0\,\% vs. 100\,\% de tasa de éxito.
 
 \section{Síntesis narrativa por escenario}
@@ -414,11 +439,12 @@ de los datos restaurados en las condiciones del experimento.
 
 \section{Resumen del contraste de hipótesis}
 
+La Tabla~\ref{tab:hipotesis} recapitula, para las tres hipótesis, su enunciado,
+el resultado del contraste y la evidencia estadística que lo respalda.
+
 \needspace{12\baselineskip}
 \begin{table}[ht]
   \centering
-  \caption{Resumen del contraste de hipótesis del experimento.}
-  \label{tab:hipotesis}
   \rowcolors{2}{tabla-par}{white}
   \begin{tabularx}{\textwidth}{C{1.5cm} X C{2.8cm} C{2.5cm}}
     \toprule
@@ -436,6 +462,8 @@ de los datos restaurados en las condiciones del experimento.
         Confirmada & Fisher $p < 0.001$ \\
     \bottomrule
   \end{tabularx}
+  \caption{Resumen del contraste de hipótesis del experimento.}
+  \label{tab:hipotesis}
 \end{table}
 
 \end{document}

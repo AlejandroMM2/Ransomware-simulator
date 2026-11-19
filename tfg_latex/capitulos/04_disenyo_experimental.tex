@@ -67,25 +67,25 @@ variables:
 \label{sec:variables-escenario}
 
 \begin{description}
-  \item[E1 — Cifrado local] El atacante transfiere un \emph{script} cifrador en
+  \item[E1 (Cifrado local)] El atacante transfiere un \emph{script} cifrador en
   Python (AES-GCM, 256~bits) al \emph{fileserver} mediante SCP y lo ejecuta
   sobre \texttt{/opt/labprueba}. El cifrador renombra cada fichero añadiendo la
   extensión \texttt{.encrypted} y elimina el original. Corresponde a la técnica
   T1486 (\emph{Data Encrypted for Impact}).
 
-  \item[E2 — Destrucción de copias] Ejecuta E1 más el intento de borrado del
+  \item[E2 (Destrucción de copias)] Ejecuta E1 más el intento de borrado del
   repositorio \gls{sftp} mediante \gls{ssh} y del \emph{bucket} de MinIO mediante
   cliente S3 con un borrado recursivo del prefijo del repositorio. Corresponde a
   T1490 (\emph{Inhibit System Recovery}).
 
-  \item[E3 — Movimiento lateral] El atacante accede al \emph{fileserver} mediante
+  \item[E3 (Movimiento lateral)] El atacante accede al \emph{fileserver} mediante
   \gls{ssh} como el usuario \texttt{lab}, localiza la clave privada
   \texttt{id\_ed25519} en el directorio \texttt{\textasciitilde{}lab/.ssh/}
   (es decir, \texttt{/home/lab/.ssh/}) y la utiliza para establecer una nueva
   conexión \gls{ssh} hacia la \emph{workstation}, pivotando a través del propio
   \emph{fileserver}. Corresponde a T1021.004 (\emph{Remote Services: SSH}).
 
-  \item[E4 — Exfiltración] El atacante empaqueta los ficheros del \emph{fileserver}
+  \item[E4 (Exfiltración)] El atacante empaqueta los ficheros del \emph{fileserver}
   en un archivo \texttt{.tar.gz} en \texttt{/tmp} y los transfiere al contenedor
   atacante mediante SCP. Corresponde a T1041 (\emph{Exfiltration Over C2
   Channel}).
@@ -244,12 +244,10 @@ tres fuentes de datos complementarias:
   escenario en \texttt{runner.jsonl} y procesados como \texttt{localfile}.
 \end{enumerate}
 
-La tabla~\ref{tab:reglas} resume las reglas implementadas.
+La Tabla~\ref{tab:reglas} resume las reglas implementadas.
 
 \begin{table}[ht]
   \centering
-  \caption{Reglas Wazuh \emph{custom} del laboratorio PFG.}
-  \label{tab:reglas}
   \rowcolors{2}{tabla-par}{white}
   \begin{tabularx}{\textwidth}{C{1.5cm} C{2.2cm} X C{1.2cm}}
     \toprule
@@ -272,6 +270,8 @@ La tabla~\ref{tab:reglas} resume las reglas implementadas.
     100240 & e4\_exfil   & runner JSON: exfiltración completada                                   & 12 \\
     \bottomrule
   \end{tabularx}
+  \caption{Reglas Wazuh \emph{custom} del laboratorio PFG.}
+  \label{tab:reglas}
 \end{table}
 
 Conviene destacar que la regla~100213 (\emph{inmutabilidad fallida}) y la
@@ -441,8 +441,8 @@ ausencia de significación estadística ($p > 0.05$) implica necesariamente ause
 de efecto real. Este trabajo ilustra además la cara complementaria del mismo
 principio: el \gls{mttr} extremo a extremo, por incorporar la latencia del sondeo,
 produce en algunos escenarios diferencias no significativas y de signo engañoso
-entre B y~C, mientras que el tiempo de restauración puro —que aísla el
-\emph{backend}— revela un efecto de magnitud máxima ($\delta = 1.0$); separar
+entre B y~C, mientras que el tiempo de restauración puro (que aísla el
+\emph{backend}) revela un efecto de magnitud máxima ($\delta = 1.0$); separar
 ambas métricas evita concluir erróneamente, a partir del \gls{mttr} ruidoso, que no
 hay diferencia de velocidad entre las estrategias. En tercer lugar, la semilla fija
 (42) empleada en el remuestreo \emph{bootstrap} y en la generación del orden de
