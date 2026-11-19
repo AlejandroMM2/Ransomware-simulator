@@ -37,7 +37,7 @@ La primera ventaja es de \emph{velocidad}. Medida de forma aislada
 (sección~\ref{sec:sensibilidad} del capítulo~\ref{C:resultados}), la restauración
 desde el \emph{backend} de MinIO es un 39\,\% más rápida que desde \gls{sftp}
 ($\delta = 1.0$). Ahora bien, esta diferencia proviene del \emph{protocolo de
-acceso} al almacenamiento --- S3 frente a \gls{sftp} --- y \textbf{no} del mecanismo
+acceso} al almacenamiento (S3 frente a \gls{sftp}) y \textbf{no} del mecanismo
 de inmutabilidad en sí: Object Lock no acelera la restauración, simplemente impide
 el borrado. Por tanto, aunque H1 se confirma, sería un error vender Object Lock
 como una mejora de rendimiento: su aportación de velocidad es, en rigor, una
@@ -53,8 +53,8 @@ métrica de velocidad puede capturar.
 
 Esta distinción tiene implicaciones directas para la toma de decisiones en
 organizaciones: la justificación del coste adicional de Object Lock no debe basarse
-en la promesa de recuperaciones más rápidas --- que es un efecto colateral del
-\emph{backend} y no de la inmutabilidad --- sino en la garantía de que la
+en la promesa de recuperaciones más rápidas (que es un efecto colateral del
+\emph{backend} y no de la inmutabilidad) sino en la garantía de que la
 recuperación sea posible en absoluto cuando el atacante ha comprometido las
 credenciales de administración.
 
@@ -129,9 +129,9 @@ del alcance de la práctica totalidad de los actores de amenaza conocidos.
 La incompatibilidad de \texttt{auditd} con el \emph{kernel} del \emph{host} no es
 un defecto sino una característica de seguridad: los parches de endurecimiento
 restringen el acceso al subsistema de auditoría desde contenedores precisamente
-para evitar interferencias maliciosas. La solución adoptada --- \gls{fim}, eventos
+para evitar interferencias maliciosas. La solución adoptada (\gls{fim}, eventos
 de sesión \gls{ssh} del \emph{daemon} \texttt{sshd} y eventos estructurados en
-\texttt{runner.jsonl} --- es representativa de los despliegues de Wazuh en
+\texttt{runner.jsonl}) es representativa de los despliegues de Wazuh en
 producción real, donde \texttt{auditd} raramente se activa por su \emph{overhead}.
 
 \subsection{Ventajas del enfoque basado en eventos estructurados}
@@ -191,9 +191,8 @@ Los umbrales actuales (por ejemplo, 15~eventos en 60~s para la regla~100200, u
 8~eventos en 60~s para la regla~100202) se calibraron durante la fase de
 preparación del proyecto, observando el volumen de eventos \gls{fim} generado tanto
 por la actividad legítima del sistema de ficheros como por el cifrador sintético
-del escenario~E1. Un umbral significativamente más alto retrasaría la detección
---- con el riesgo de que un cifrador más rápido que el sintético complete su trabajo
-antes de superarlo --- mientras que un umbral más bajo incrementaría la sensibilidad
+del escenario~E1. Un umbral significativamente más alto retrasaría la detección (con el riesgo de que un cifrador más rápido que el sintético complete su trabajo
+antes de superarlo) mientras que un umbral más bajo incrementaría la sensibilidad
 a costa de un mayor riesgo de falsos positivos ante operaciones legítimas de copia
 o sincronización masiva de ficheros.
 
@@ -205,16 +204,16 @@ parámetro de calibración: la regla~100201 (aparición del \emph{payload} en
 creación del archivo comprimido de exfiltración (100231) y las de eventos
 estructurados del \emph{runner} (100212, 100213, 100240).
 
-Más importante aún, el resultado cualitativo central del trabajo --- que el
+Más importante aún, el resultado cualitativo central del trabajo (que el
 escenario~E2 revela una diferencia de \emph{disponibilidad}, no de velocidad, entre
-las estrategias~B y~C --- es completamente robusto frente a la calibración de los
+las estrategias~B y~C) es completamente robusto frente a la calibración de los
 umbrales de \gls{fim}: la imposibilidad de recuperación de la estrategia~B ante la
 destrucción del repositorio no depende de qué regla la detecte antes, sino del
 resultado binario \texttt{recovery\_status} que registra el \emph{playbook} de
 recuperación, que es \emph{independiente} de toda la instrumentación \gls{siem}. Una
-caracterización sistemática de esta sensibilidad --- por ejemplo, mediante un
+caracterización sistemática de esta sensibilidad (por ejemplo, mediante un
 barrido de valores de \texttt{frequency} y \texttt{timeframe} y su efecto sobre
-$\tdetect$ --- no se realizó en este trabajo y se plantea como posible extensión
+$\tdetect$) no se realizó en este trabajo y se plantea como posible extensión
 metodológica.
 
 \section{Comparación con trabajos relacionados}
@@ -237,8 +236,8 @@ alimentar directamente el sistema \gls{sdn} para aislar automáticamente el
 segmento de red comprometido en cuanto se detecte el cifrado activo.
 
 La comparación con los tres trabajos metodológicamente próximos introducidos en
-el capítulo~\ref{C:estado_arte} --- \textcite{gehani2023}, \textcite{vonderassen2024}
-y \textcite{netsecbed2026} --- confirma, tras observar los resultados
+el capítulo~\ref{C:estado_arte} (\textcite{gehani2023}, \textcite{vonderassen2024}
+y \textcite{netsecbed2026}) confirma, tras observar los resultados
 experimentales, la complementariedad ya anticipada en la revisión bibliográfica.
 El \emph{dataset} reproducible de \textcite{gehani2023} sobre comportamiento
 real de binarios de ransomware sería un candidato natural para sustituir el
@@ -359,18 +358,14 @@ exactamente la misma tarifa por GB almacenado, con o sin protección WORM
 activa. El coste diferencial real de la estrategia~C frente a la estrategia~B no
 proviene, por tanto, del precio por gigabyte, sino de dos factores indirectos:
 el hecho de que los objetos protegidos no pueden eliminarse antes de expirar su
-periodo de retención --- lo que impide aplicar políticas de purga agresivas que
-reducirían el volumen almacenado --- y un incremento en el número de llamadas a
+periodo de retención (lo que impide aplicar políticas de purga agresivas que
+reducirían el volumen almacenado) y un incremento en el número de llamadas a
 la \gls{api} necesarias para consultar y gestionar los metadatos de retención de
-cada objeto.
+cada objeto. La Tabla~\ref{tab:coste-beneficio} resume esta comparación de coste
+mensual entre ambas estrategias para un repositorio de 1\,TB.
 
 \begin{table}[!h]
   \centering
-  \caption[Estimación orientativa de coste mensual de almacenamiento para un
-           repositorio de backup de 1\,TB bajo las estrategias B y C.]
-          {Estimación orientativa de coste mensual de almacenamiento para un
-           repositorio de backup de 1\,TB bajo las estrategias B y C.}
-  \label{tab:coste-beneficio}
   \rowcolors{2}{tabla-par}{white}
   \begin{tabularx}{\textwidth}{X C{3cm} C{3cm}}
     \toprule
@@ -382,9 +377,14 @@ cada objeto.
     Almacenamiento (1\,TB, tarifa S3 Standard) & $\approx$23,55\,\$/mes & $\approx$23,55\,\$/mes \\
     Sobrecoste directo de Object Lock          & --- & 0,00\,\$ (sin cargo adicional) \\
     Flexibilidad de purga anticipada            & Sí & No durante el periodo de retención \\
-    Coste de un incidente E2 (repositorio destruido, sin recuperación) & Pérdida total de datos & N/A --- éxito garantizado \\
+    Coste de un incidente E2 (repositorio destruido, sin recuperación) & Pérdida total de datos & N/A, éxito garantizado \\
     \bottomrule
   \end{tabularx}
+  \caption[Estimación orientativa de coste mensual de almacenamiento para un
+           repositorio de backup de 1\,TB bajo las estrategias B y C.]
+          {Estimación orientativa de coste mensual de almacenamiento para un
+           repositorio de backup de 1\,TB bajo las estrategias B y C.}
+  \label{tab:coste-beneficio}
 \end{table}
 
 La conclusión del análisis es que, en términos puramente de precio por gigabyte
@@ -405,8 +405,8 @@ elimina.
 Conviene matizar que este análisis no incluye los costes de migración desde una
 estrategia SFTP existente, la formación del personal de operaciones en la
 gestión de \emph{locks} de \restic con Object Lock (sección~\ref{sec:limitaciones}),
-ni el coste de una posible implementación \emph{on-premise} con MinIO --- la
-utilizada en este laboratorio --- frente al uso de Amazon~S3 gestionado, que
+ni el coste de una posible implementación \emph{on-premise} con MinIO (la
+utilizada en este laboratorio) frente al uso de Amazon~S3 gestionado, que
 sustituye el coste de licencia por el coste de hardware propio y su
 mantenimiento. Una estimación completa de estos costes queda fuera del alcance
 de este trabajo y se plantea como línea de trabajo futuro en el
@@ -424,7 +424,8 @@ alerta supera el nivel configurado. El \emph{script} usa exclusivamente la
 biblioteca estándar de Python (sin dependencias externas), de modo que funciona con
 el intérprete embebido de Wazuh. Se configura en \texttt{ossec.conf} del
 \emph{manager} como una integración de tipo \texttt{custom} que filtra por
-\texttt{level~$\geq$~10}:
+\texttt{level~$\geq$~10}, según el bloque que reproduce el
+Listado~\ref{lst:telegram-conf}:
 
 \begin{lstlisting}[style=bash, caption={Bloque de configuración de la integración
   en ossec.conf del manager.}, label={lst:telegram-conf}]
@@ -442,7 +443,7 @@ El despliegue es opcional y está automatizado de forma idempotente en
 \texttt{TELEGRAM\_BOT\_TOKEN} y \texttt{TELEGRAM\_CHAT\_ID} están definidas en el
 fichero \texttt{.env}; en caso contrario, el laboratorio funciona igual sin
 notificaciones. El formato de mensaje que emite el \emph{script} a partir de los
-campos de la alerta es el siguiente:
+campos de la alerta es el que muestra el Listado~\ref{lst:telegram}:
 
 \begin{lstlisting}[style=bash, caption={Formato de las notificaciones de Telegram
   generadas por la integración a partir de una alerta Wazuh.}, label={lst:telegram}]
@@ -467,7 +468,7 @@ El laboratorio está diseñado para ser reproducible en cualquier máquina Linux
 moderna con Docker, siguiendo las instrucciones del Anexo~C. Como comprobación
 preliminar de esa portabilidad se realizó un despliegue parcial sobre una máquina
 virtual Ubuntu~24.04~LTS, instalando únicamente las herramientas mínimas
-necesarias:
+necesarias que recoge el Listado~\ref{lst:vm-setup}:
 
 \begin{lstlisting}[style=bash, caption={Instalación mínima en Ubuntu 24.04 para
   reproducir el laboratorio desde cero.}, label={lst:vm-setup}]
