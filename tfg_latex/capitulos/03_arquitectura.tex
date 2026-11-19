@@ -8,13 +8,11 @@
 
 \subsection{Hardware del host}
 
-El laboratorio completo se ejecuta sobre un equipo de sobremesa personal con las
-siguientes especificaciones:
+El laboratorio completo se ejecuta sobre un equipo de sobremesa personal cuyas
+especificaciones recoge la Tabla~\ref{tab:hardware}:
 
 \begin{table}[ht]
   \centering
-  \caption{Especificaciones del equipo \textit{host} de experimentación.}
-  \label{tab:hardware}
   \rowcolors{2}{tabla-par}{white}
   \begin{tabularx}{\textwidth}{X X}
     \toprule
@@ -31,6 +29,8 @@ siguientes especificaciones:
     Docker Compose    & v2.x \\
     \bottomrule
   \end{tabularx}
+  \caption{Especificaciones del equipo \textit{host} de experimentación.}
+  \label{tab:hardware}
 \end{table}
 
 El consumo de memoria en reposo del \emph{stack} completo es de aproximadamente
@@ -74,13 +74,11 @@ virtuales responde a tres criterios:
 \end{enumerate}
 
 La infraestructura se organiza en una red privada \texttt{172.20.0.0/24} con IPs
-estáticas asignadas a cada contenedor. La tabla~\ref{tab:contenedores} detalla la
+estáticas asignadas a cada contenedor. La Tabla~\ref{tab:contenedores} detalla la
 función de cada contenedor.
 
 \begin{table}[ht]
   \centering
-  \caption{Contenedores del laboratorio y su dirección IP en la red \texttt{lab-net}.}
-  \label{tab:contenedores}
   \rowcolors{2}{tabla-par}{white}
   \begin{tabularx}{\textwidth}{C{2.5cm} C{3cm} X}
     \toprule
@@ -97,9 +95,11 @@ función de cada contenedor.
     attacker        & 172.20.0.30 & Atacante basado en Kali Linux \\
     restic-sftp     & 172.20.0.41 & Destino de backups estrategia B \\
     minio           & 172.20.0.40 & Almacenamiento de objetos S3-compatible \\
-    minio-init      & ---         & Inicialización de buckets (one-shot) \\
+    minio-init      & N/A & Inicialización de buckets (one-shot) \\
     \bottomrule
   \end{tabularx}
+  \caption{Contenedores del laboratorio y su dirección IP en la red \texttt{lab-net}.}
+  \label{tab:contenedores}
 \end{table}
 
 \section{Descripción de los contenedores}
@@ -180,8 +180,8 @@ la \gls{api} de Amazon \gls{s3}, configurado con dos \emph{buckets}:
   \item[\texttt{restic-c}] Protegido con Object Lock COMPLIANCE durante 30~días.
   El usuario \gls{iam} \texttt{restic-c-user} puede leer y escribir pero
   \textbf{no borrar}: su política \gls{iam} (\texttt{restic-c-policy.json})
-  deniega explícitamente las operaciones de borrado, lo que --- junto con la
-  inmutabilidad de objeto --- cierra el vector de los \emph{delete markers}
+  deniega explícitamente las operaciones de borrado, lo que (junto con la
+  inmutabilidad de objeto) cierra el vector de los \emph{delete markers}
   discutido en el capítulo~\ref{C:discusion}.
   \item[\texttt{restic-b}] Convencional sin protección. El usuario
   \texttt{restic-b-user} tiene permisos estándar de lectura, escritura y borrado
@@ -202,8 +202,8 @@ almacena sus objetos en \texttt{/bitnami/minio/data}.
 \section{Diagrama de red y flujo de comunicación}
 \label{sec:diagrama-red}
 
-La figura textual~\ref{lst:diagrama-red} resume la topología lógica de la red
-\texttt{lab-net} y los flujos de comunicación relevantes para el experimento.
+El Listado~\ref{lst:diagrama-red} resume, como diagrama textual, la topología
+lógica de la red \texttt{lab-net} y los flujos de comunicación relevantes para el experimento.
 Todos los contenedores comparten la misma red \texttt{bridge} de Docker, lo que
 permite resolución de nombres mediante el DNS interno de Docker además de
 las IPs estáticas asignadas.
@@ -307,7 +307,9 @@ El volumen Docker \texttt{lab-logs} es el mecanismo de comunicación asíncrona 
 el contenedor atacante y el \emph{manager} Wazuh. Durante la ejecución de cada
 escenario, el \emph{script} escribe eventos \gls{json} estructurados en
 \texttt{/var/log/lab/\allowbreak{}runner.jsonl}, que el \emph{manager} procesa como
-fuente de \emph{logs} mediante \texttt{localfile} con formato \gls{json}.
+fuente de \emph{logs} mediante \texttt{localfile} con formato \gls{json}. El
+Listado~\ref{lst:runner-json} muestra un ejemplo de estos eventos para el
+escenario~E2.
 
 \begin{lstlisting}[style=bash, caption={Ejemplo de eventos JSON en runner.jsonl
   generados por el escenario E2.}, label={lst:runner-json}]
@@ -330,12 +332,11 @@ La red \texttt{lab-net} se define como una red \emph{bridge} con
 subred~\texttt{172.20.0.0/24}; el laboratorio la mantiene con \texttt{internal:
 false} durante el desarrollo y documenta en el propio \texttt{docker-compose.yml}
 que puede conmutarse a \texttt{internal: true} para un aislamiento total una vez
-configurado.
+configurado. La Tabla~\ref{tab:puertos} enumera los puertos que, con esta
+configuración, el laboratorio expone al \emph{host}.
 
 \begin{table}[ht]
   \centering
-  \caption{Puertos expuestos al \textit{host} por el laboratorio.}
-  \label{tab:puertos}
   \rowcolors{2}{tabla-par}{white}
   \begin{tabularx}{\textwidth}{C{2.5cm} C{2cm} C{2cm} X}
     \toprule
@@ -353,6 +354,8 @@ configurado.
     minio           & 9001  & HTTP  & Consola web de administración \\
     \bottomrule
   \end{tabularx}
+  \caption{Puertos expuestos al \textit{host} por el laboratorio.}
+  \label{tab:puertos}
 \end{table}
 
 \section{Estrategia de registro y trazabilidad}
@@ -373,8 +376,8 @@ sección~\ref{sec:limitaciones} siguiente.
 
 El segundo nivel es el registro de \emph{seguridad}, compuesto por los eventos
 que los agentes Wazuh envían al \emph{manager} y que este archiva
-completamente --- no solo los que generan alerta, gracias a la configuración
-\texttt{logall\_json=yes} ya mencionada --- en \texttt{/var/ossec/logs/archives/}
+completamente (no solo los que generan alerta, gracias a la configuración
+\texttt{logall\_json=yes} ya mencionada) en \texttt{/var/ossec/logs/archives/}
 del contenedor \texttt{wazuh-manager}. Este archivo completo, distinto del
 subconjunto de eventos que finalmente dispara una regla y llega al
 \emph{indexer} como alerta, fue la herramienta principal durante la fase de
@@ -405,35 +408,53 @@ para diagnosticar por qué ciertas reglas no disparaban en el orden esperado.
 \section{Limitaciones conocidas del entorno}
 \label{sec:limitaciones}
 
-\subsection{Incompatibilidad de auditd con el kernel CachyOS}
+El entorno descrito presenta cuatro limitaciones técnicas conocidas,
+derivadas en su mayoría de restricciones del sistema anfitrión o de las
+imágenes de contenedor empleadas. En todos los casos se adoptó una solución
+alternativa que preserva la validez del experimento y que se documenta a
+continuación.
 
-El \emph{kernel} linux-cachyos bloquea el acceso al subsistema \emph{netlink audit}
-desde \emph{namespaces} de contenedor incluso con \texttt{privileged:~true}. Esto
-impidió el uso de \texttt{auditd} para la instrumentación de \emph{syscalls}. La
-solución adoptada fue sustituirlo por \gls{fim} en tiempo real más eventos \gls{json}
-estructurados en \texttt{runner.jsonl}, representativa de los despliegues \gls{siem}
-en producción donde \texttt{auditd} raramente se activa por su \emph{overhead}.
-Como consecuencia de abandonar \texttt{auditd}, los contenedores del laboratorio se
-ejecutan \textbf{sin privilegios} (\texttt{privileged} y \texttt{cap\_add} no se
-utilizan en el \texttt{docker-compose.yml}), lo que reduce la superficie de ataque
-del propio entorno de experimentación.
+\textbf{Incompatibilidad de auditd con el kernel CachyOS.} El \emph{kernel}
+linux-cachyos bloquea el acceso al subsistema \emph{netlink audit} desde
+\emph{namespaces} de contenedor incluso con \texttt{privileged:~true}. Esto
+impidió el uso de \texttt{auditd} para la instrumentación de \emph{syscalls}.
+La solución adoptada fue sustituirlo por \gls{fim} en tiempo real más eventos
+\gls{json} estructurados en \texttt{runner.jsonl}, una combinación
+representativa de los despliegues \gls{siem} en producción, donde
+\texttt{auditd} raramente se activa por su \emph{overhead}. Como consecuencia
+de abandonar \texttt{auditd}, los contenedores del laboratorio se ejecutan
+\textbf{sin privilegios} (\texttt{privileged} y \texttt{cap\_add} no se
+utilizan en el \texttt{docker-compose.yml}), lo que reduce la superficie de
+ataque del propio entorno de experimentación.
 
-\subsection{Imposibilidad de webhook de fichero en MinIO}
+\textbf{Imposibilidad de webhook de fichero en MinIO.} MinIO no permite
+escribir eventos de auditoría directamente a un fichero local, a diferencia
+de otros servicios que vuelcan su registro de acceso en disco. Por ello no
+fue posible derivar la detección de la actividad sobre el \emph{bucket}
+protegido de un registro propio de MinIO, y se optó por instrumentar los
+\emph{scripts} de escenario para que emitieran eventos \gls{json}
+estructurados en \texttt{runner.jsonl}, que Wazuh decodifica directamente.
+Esta decisión mantiene la señal de detección bajo control del propio
+experimento y evita depender del formato de registro interno del servicio.
 
-MinIO no permite escribir eventos de auditoría directamente a un fichero local.
-Se resolvió instrumentando los \emph{scripts} de escenario con eventos \gls{json}
-en \texttt{runner.jsonl}.
+\textbf{Gestión de locks de Restic con Object Lock.} Con Object Lock en modo
+COMPLIANCE activo sobre el \emph{bucket} de copias, \restic no puede crear ni
+eliminar los ficheros de bloqueo que emplea por defecto para serializar sus
+operaciones, puesto que el propio mecanismo WORM impide borrarlos una vez
+escritos. Para evitar que las operaciones de copia quedaran bloqueadas de
+forma permanente, se emplea la opción \texttt{--no-lock} en todas las
+invocaciones de \restic realizadas con el usuario \texttt{restic-c-user}.
+La medida es segura en este contexto porque las operaciones sobre el
+repositorio están serializadas por el propio diseño del experimento, sin
+accesos concurrentes que el mecanismo de bloqueo tuviera que coordinar.
 
-\subsection{Gestión de locks de Restic con Object Lock}
-
-Con Object Lock COMPLIANCE activo, \restic no puede eliminar sus ficheros de
-bloqueo. Se usa \texttt{--no-lock} en todas las operaciones con
-\texttt{restic-c-user}.
-
-\subsection{rsyslog no disponible por defecto}
-
-Las imágenes mínimas de Ubuntu~24.04 no incluyen \texttt{rsyslog}. Se resolvió
-incluyéndolo en los Dockerfiles.
+\textbf{rsyslog no disponible por defecto.} Las imágenes mínimas de
+Ubuntu~24.04 empleadas para los contenedores víctima no incluyen
+\texttt{rsyslog}, del que depende la recolección de determinados eventos de
+sistema por parte del agente Wazuh. La limitación se resolvió añadiendo su
+instalación a los \emph{Dockerfiles} correspondientes, de modo que la imagen
+resultante disponga del \emph{daemon} de registro sin requerir pasos manuales
+tras el despliegue.
 
 \section{Gestión de certificados TLS y PKI interna}
 \label{sec:pki}
@@ -443,7 +464,7 @@ deliberada, al propio \emph{stack} \gls{siem}: las conexiones entre
 \texttt{wazuh-manager}, \texttt{wazuh-indexer} y \texttt{wazuh-dashboard} usan
 certificados emitidos por una autoridad de certificación (\gls{ca}) propia del
 laboratorio, generada íntegramente mediante el \emph{script}
-\texttt{generate\_certs.sh} (listado~\ref{lst:reproduccion} del anexo~C), sin
+\texttt{generate\_certs.sh} (Listado~\ref{lst:reproduccion} del anexo~C), sin
 depender de ninguna entidad certificadora externa, lo que es coherente con el
 requisito de reproducibilidad completa sin credenciales de terceros ya
 justificado en la sección~\ref{sec:destruccion-backups} del
@@ -453,7 +474,7 @@ desplegados en los contenedores víctima, de ataque y de \emph{backup}
 \texttt{restic-sftp}) \textbf{no} presentan un certificado \gls{tls}
 individual: se autentican frente al \emph{manager} mediante el mecanismo de
 \emph{enrollment} propio de Wazuh sobre el puerto~1515 descrito en la
-tabla~\ref{tab:contenedores}, que registra cada agente bajo un nombre y grupo
+Tabla~\ref{tab:contenedores}, que registra cada agente bajo un nombre y grupo
 (\texttt{WAZUH\_AGENT\_NAME}, \texttt{WAZUH\_AGENT\_GROUP}) y a partir de ahí
 cifra el canal de eventos hacia el puerto~1514 con una clave compartida
 derivada del registro, no con un par de claves \gls{tls} por agente.
@@ -462,8 +483,7 @@ La jerarquía de certificados generada por \texttt{generate\_certs.sh} consta,
 por tanto, de una \gls{ca} raíz autofirmada y cuatro certificados de servidor
 emitidos por ella: uno para \texttt{wazuh-indexer}, uno para el usuario
 administrador del propio \emph{indexer} (necesario para inicializar el
-\emph{plugin} de seguridad de OpenSearch), uno para \texttt{wazuh-manager}
---- usado por Filebeat para el envío de eventos al \emph{indexer} --- y uno
+\emph{plugin} de seguridad de OpenSearch), uno para \texttt{wazuh-manager} (usado por Filebeat para el envío de eventos al \emph{indexer}) y uno
 para \texttt{wazuh-dashboard}. Todos los certificados se generan con una
 validez de diez años, adecuada para un entorno de laboratorio de vida corta;
 un despliegue en producción de un patrón similar de \gls{ca} propia sí
@@ -472,8 +492,8 @@ el laboratorio actual.
 
 La comunicación entre el \emph{manager} y el \emph{indexer} OpenSearch sigue el
 mismo patrón mediante el módulo \texttt{opensearch-security}, cuya
-inicialización mediante \texttt{securityadmin.sh} --- detallada en el
-listado~\ref{lst:reproduccion} del anexo~C --- es precisamente el paso más
+inicialización mediante \texttt{securityadmin.sh} (detallada en el
+Listado~\ref{lst:reproduccion} del anexo~C) es precisamente el paso más
 delicado del arranque del laboratorio: debe ejecutarse una única vez, después de
 que el \emph{indexer} esté operativo pero antes de que el resto del
 \emph{stack} intente conectarse, lo que justifica la división en dos etapas del
