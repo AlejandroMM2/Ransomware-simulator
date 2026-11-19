@@ -70,8 +70,8 @@ clientes y reguladores para aumentar la presión.
 \label{sec:evasion-edr}
 
 Un factor que explica por qué la instrumentación mediante \gls{fim} y
-análisis de comportamiento --- y no únicamente firmas de antivirus
-tradicional --- se ha vuelto imprescindible es la sofisticación creciente
+análisis de comportamiento (y no únicamente firmas de antivirus
+tradicional) se ha vuelto imprescindible es la sofisticación creciente
 de las técnicas de evasión empleadas por los cifradores modernos. Familias
 como BlackCat y LockBit~3.0 incorporan de forma habitual la desactivación
 de soluciones de \textit{endpoint detection and response} mediante
@@ -84,8 +84,8 @@ para evitar la detección basada en \textit{hash} de fichero.
 Esta evolución es la justificación técnica de fondo para el enfoque
 adoptado en este trabajo: dado que la detección basada en firmas o en la
 reputación del binario es cada vez más evitable, la detección basada en
-\emph{comportamiento observable a nivel de sistema de ficheros} --- el
-principio en el que se apoya el módulo \gls{fim} de Wazuh --- resulta más
+\emph{comportamiento observable a nivel de sistema de ficheros} (el
+principio en el que se apoya el módulo \gls{fim} de Wazuh) resulta más
 robusta frente a la evasión, puesto que un cifrador que modifica cientos
 de ficheros en segundos produce el mismo patrón de eventos
 independientemente de cómo se oculte el binario que lo ejecuta.
@@ -153,8 +153,7 @@ periódicamente su restauración, en línea directa con la recomendación de
 pruebas periódicas de recuperación formulada en la
 sección~\ref{sec:implicaciones-practicas} del capítulo~\ref{C:discusion}.
 
-La convergencia de estos tres marcos --- NIS2, ENS y los controles \gls{cis}
---- con la evidencia experimental de este \pfg no es casual: los tres han
+La convergencia de estos tres marcos (NIS2, ENS y los controles \gls{cis}) con la evidencia experimental de este \pfg no es casual: los tres han
 sido revisados o actualizados en los últimos años precisamente en respuesta a
 la evolución de las tácticas de destrucción de \emph{backups} descrita en la
 sección siguiente, lo que confirma que el problema abordado experimentalmente
@@ -194,7 +193,7 @@ atacantes intentaron comprometer explícitamente sus copias de seguridad durante
 el ataque, y ese intento tuvo éxito en el 57\,\% de los casos, es decir, en más
 de la mitad de las organizaciones afectadas. Este dato sugiere que la erosión de
 la fiabilidad de las estrategias de \emph{backup} convencionales frente a un
-adversario activo --- precisamente la motivación central de este \pfg --- no es
+adversario activo (precisamente la motivación central de este \pfg) no es
 una percepción anecdótica sino una tendencia sectorial medible, y refuerza la
 relevancia del escenario~E2 como representativo del comportamiento real de los
 atacantes, y no como un caso extremo poco frecuente.
@@ -401,15 +400,10 @@ más de 600~técnicas y sub-técnicas en catorce tácticas que abarcan el
 ciclo de vida completo de un ataque.
 
 Los cuatro escenarios de este trabajo mapean directamente con técnicas de
-la matriz:
+la matriz, como recoge la Tabla~\ref{tab:attck}:
 
 \begin{table}[!h]
   \centering
-  \caption[Correspondencia entre escenarios del laboratorio y técnicas
-           MITRE ATT\&CK.]
-          {Correspondencia entre escenarios del laboratorio y técnicas
-           MITRE ATT\&CK.}
-  \label{tab:attck}
   \begin{tabularx}{\textwidth}{C{1.8cm} C{2.8cm} X C{2.5cm}}
     \toprule
     \rowcolor{tabla-cabecera}
@@ -424,6 +418,11 @@ la matriz:
     E4 & T1041      & Exfiltration Over C2        & Exfiltración \\
     \bottomrule
   \end{tabularx}
+  \caption[Correspondencia entre escenarios del laboratorio y técnicas
+           MITRE ATT\&CK.]
+          {Correspondencia entre escenarios del laboratorio y técnicas
+           MITRE ATT\&CK.}
+  \label{tab:attck}
 \end{table}
 
 Atomic Red Team~\cite{atomicredteam2024} es un \textit{framework} de
@@ -464,9 +463,9 @@ comportamiento real de binarios de ransomware. Su trabajo construye un
 ejecución de muestras reales en \emph{sandbox}, extraídas de repositorios como
 MalwareBazaar, y publica tanto los datos como el código de orquestación necesario
 para regenerarlos. Comparte con este trabajo el énfasis en la reproducibilidad
-como requisito metodológico de primer orden --- de hecho, el título del artículo,
+como requisito metodológico de primer orden (de hecho, el título del artículo,
 \emph{Towards Reproducible Ransomware Analysis}, podría aplicarse igualmente al
-laboratorio aquí presentado --- pero se centra en la caracterización del
+laboratorio aquí presentado) pero se centra en la caracterización del
 comportamiento del cifrador en sí, no en la comparación de estrategias de
 recuperación posteriores al ataque.
 
@@ -485,8 +484,7 @@ lugar de a nivel de sistema de ficheros. Los resultados de GuardFS, que muestran
 que la pérdida de datos se reduce pero no se elimina completamente incluso con
 mitigación activa a nivel de \emph{filesystem}, refuerzan indirectamente la tesis
 de este trabajo: ninguna capa de defensa preventiva es suficiente por sí sola, y
-la garantía última de recuperación --- el objeto de estudio de este \pfg ---
-sigue siendo necesaria como última línea de defensa.
+la garantía última de recuperación (el objeto de estudio de este \pfg) sigue siendo necesaria como última línea de defensa.
 
 Bitzki et al.~\cite{netsecbed2026} presentan NetSecBed, un \emph{testbed}
 nativo en contenedores para la generación reproducible de evidencias de
@@ -533,9 +531,6 @@ completamente automatizado y reproducible por terceros.
 
 \begin{table}[!h]
   \centering
-  \caption[Comparación metodológica con los trabajos relacionados.]
-          {Comparación metodológica con los trabajos relacionados.}
-  \label{tab:gap-analysis}
   \begin{tabularx}{\textwidth}{X C{2.6cm} C{2.6cm} C{2.6cm} C{2.6cm}}
     \toprule
     \rowcolor{tabla-cabecera}
@@ -554,11 +549,14 @@ completamente automatizado y reproducible por terceros.
     \textbf{Este trabajo}                         & \textbf{Sí} & \textbf{Sí} & \textbf{Sí} & \textbf{Sí} \\
     \bottomrule
   \end{tabularx}
+  \caption[Comparación metodológica con los trabajos relacionados.]
+          {Comparación metodológica con los trabajos relacionados.}
+  \label{tab:gap-analysis}
 \end{table}
 
 Los tres trabajos revisados comparten un enfoque centrado exclusivamente
-en la \emph{detección} del ransomware --- mediante acceso a ficheros,
-tráfico de red o ambos --- evaluada sobre un único conjunto de muestras
+en la \emph{detección} del ransomware (mediante acceso a ficheros,
+tráfico de red o ambos) evaluada sobre un único conjunto de muestras
 sin repeticiones ni análisis de significancia estadística. Ninguno modela
 la fase de destrucción de copias de seguridad como parte del escenario de
 amenaza, pese a que, como se ha argumentado en la
