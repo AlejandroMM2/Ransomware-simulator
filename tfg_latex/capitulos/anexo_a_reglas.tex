@@ -63,7 +63,7 @@ añadido (regla base 554): requieren acumular, respectivamente, 15~creaciones en
 \texttt{.locked} o \texttt{.crypto}, ambos dentro de una ventana de 60~segundos,
 antes de disparar. La regla 100201, en cambio, no depende de frecuencia alguna:
 dispara con un único evento de creación de fichero ejecutable en \texttt{/tmp}, lo
-que la convierte en la señal más temprana disponible dentro de este grupo (el \emph{payload} del atacante) , a costa de un mayor riesgo de falso
+que la convierte en la señal más temprana disponible dentro de este grupo (el \emph{payload} del atacante), a costa de un mayor riesgo de falso
 positivo si un proceso legítimo crea \emph{scripts} temporales con esa extensión.
 Este escenario no emplea eventos del \emph{runner}; su detección es íntegramente
 por \gls{fim}.
