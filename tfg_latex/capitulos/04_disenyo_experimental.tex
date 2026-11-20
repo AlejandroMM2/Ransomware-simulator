@@ -29,8 +29,17 @@ máxima, se discute en la sección de validez de conclusión estadística
 
 \section{Variables del experimento}
 
-El experimento sigue un diseño factorial $4 \times 3 \times 20$ con las siguientes
-variables:
+El experimento sigue un diseño factorial completo $4 \times 3 \times 20$, en el que
+se cruzan los cuatro escenarios de ataque con las tres estrategias de copia de
+seguridad y cada combinación se repite veinte veces, lo que da lugar a las
+240~ejecuciones analizadas. Para describir ese diseño con precisión conviene
+distinguir tres tipos de variables: las \emph{independientes}, que son los
+factores que el experimento manipula de forma controlada (la estrategia de copia
+y el escenario de ataque); las \emph{dependientes}, que son las magnitudes que se
+miden en cada ejecución como resultado (tiempos de detección y recuperación, y
+tasa de éxito); y la variable de \emph{control}, la repetición, que se mantiene
+fija en veinte por celda para dotar de potencia estadística al contraste. Cada
+uno de estos grupos se detalla en las subsecciones siguientes.
 
 \subsection{Variable independiente principal: estrategia de backup}
 
